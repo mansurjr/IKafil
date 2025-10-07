@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('buyer', 'seller', 'support', 'admin');
+CREATE TYPE "UserRole" AS ENUM ('buyer', 'seller', 'support', 'admin', 'superadmin');
 
 -- CreateEnum
 CREATE TYPE "DeviceType" AS ENUM ('iphone', 'mac');
@@ -31,7 +31,7 @@ CREATE TABLE "region" (
 
 -- CreateTable
 CREATE TABLE "admin" (
-    "id" BIGSERIAL NOT NULL,
+    "id" SERIAL NOT NULL,
     "username" TEXT NOT NULL,
     "email" TEXT,
     "full_name" TEXT,
@@ -44,7 +44,7 @@ CREATE TABLE "admin" (
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" BIGSERIAL NOT NULL,
+    "id" SERIAL NOT NULL,
     "phone" TEXT,
     "email" TEXT,
     "name" TEXT,
@@ -100,26 +100,26 @@ CREATE TABLE "device_details" (
 
 -- CreateTable
 CREATE TABLE "devices" (
-    "id" BIGSERIAL NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "type" "DeviceType" NOT NULL,
     "sale_type" "SaleType" NOT NULL DEFAULT 'website_sold',
     "status" "DeviceStatus" NOT NULL DEFAULT 'pending_approval',
-    "seller_id" BIGINT,
+    "seller_id" INTEGER,
     "region_id" INTEGER,
     "base_price" DECIMAL(65,30) NOT NULL,
     "details_id" INTEGER,
     "is_active" BOOLEAN DEFAULT true,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3),
+    "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "devices_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "device_images" (
-    "id" BIGSERIAL NOT NULL,
-    "device_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "device_id" INTEGER NOT NULL,
     "url" TEXT NOT NULL,
     "is_primary" BOOLEAN DEFAULT false,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
@@ -130,10 +130,10 @@ CREATE TABLE "device_images" (
 -- CreateTable
 CREATE TABLE "trade_in_requests" (
     "id" SERIAL NOT NULL,
-    "seller_id" BIGINT NOT NULL,
+    "seller_id" INTEGER NOT NULL,
     "old_device_name" TEXT NOT NULL,
     "estimated_value" DECIMAL(65,30) NOT NULL,
-    "new_device_id" BIGINT NOT NULL,
+    "new_device_id" INTEGER NOT NULL,
     "approved" BOOLEAN DEFAULT false,
     "difference_amount" DECIMAL(65,30),
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
@@ -143,9 +143,9 @@ CREATE TABLE "trade_in_requests" (
 
 -- CreateTable
 CREATE TABLE "carts" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
-    "device_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "device_id" INTEGER NOT NULL,
     "added_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "carts_pkey" PRIMARY KEY ("id")
@@ -153,11 +153,11 @@ CREATE TABLE "carts" (
 
 -- CreateTable
 CREATE TABLE "contracts" (
-    "id" BIGSERIAL NOT NULL,
+    "id" SERIAL NOT NULL,
     "contract_number" TEXT,
-    "buyer_id" BIGINT NOT NULL,
-    "device_id" BIGINT NOT NULL,
-    "admin_id" BIGINT,
+    "buyer_id" INTEGER NOT NULL,
+    "device_id" INTEGER NOT NULL,
+    "admin_id" INTEGER,
     "plan_id" INTEGER,
     "trade_in_id" INTEGER,
     "total_price" DECIMAL(65,30) NOT NULL,
@@ -169,44 +169,44 @@ CREATE TABLE "contracts" (
     "end_date" TIMESTAMP(3),
     "is_trade_in" BOOLEAN DEFAULT false,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3),
+    "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "contracts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "payment_schedule" (
-    "id" BIGSERIAL NOT NULL,
-    "contract_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "contract_id" INTEGER NOT NULL,
     "due_date" TIMESTAMP(3) NOT NULL,
     "amount_due" DECIMAL(65,30) NOT NULL,
     "paid_amount" DECIMAL(65,30),
     "status" "PaymentStatus" NOT NULL DEFAULT 'pending',
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3),
+    "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "payment_schedule_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "payments" (
-    "id" BIGSERIAL NOT NULL,
-    "contract_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "contract_id" INTEGER NOT NULL,
     "amount" DECIMAL(65,30) NOT NULL,
     "payment_date" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "method" "PaymentMethod" NOT NULL DEFAULT 'cash',
     "status" "PaymentStatus" NOT NULL DEFAULT 'paid',
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3),
+    "updated_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "likes" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
-    "device_id" BIGINT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "device_id" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "likes_pkey" PRIMARY KEY ("id")
@@ -214,9 +214,9 @@ CREATE TABLE "likes" (
 
 -- CreateTable
 CREATE TABLE "notifications" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT,
-    "admin_id" BIGINT,
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER,
+    "admin_id" INTEGER,
     "title" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "is_read" BOOLEAN NOT NULL DEFAULT false,
