@@ -1,17 +1,24 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService as NestJwtService } from "@nestjs/jwt";
-import { users } from "@prisma/client";
+import { UserRole, users } from "@prisma/client";
+
+export interface JWT_Payoad {
+  id: number;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+}
 
 @Injectable()
 export class JwtService {
   constructor(private readonly jwt: NestJwtService) {}
 
   async generateTokens(user: users) {
-    const payload = {
+    const payload:JWT_Payoad = {
       id: user.id,
-      email: user.email,
+      email: user.email!,
       role: user.role,
-      isActive: user.is_active,
+      isActive: user.is_active!,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
