@@ -68,7 +68,11 @@ model admin {
   username   String    @unique
   email      String?   @unique
   full_name  String?
+  password   String?
   is_active  Boolean?  @default(true)
+  token      String?
+  otp_code   String?
+  otp_expire DateTime?
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
@@ -77,21 +81,23 @@ model admin {
 }
 
 model users {
-  id            Int       @id @default(autoincrement())
-  phone         String?
-  email         String?   @unique
-  name          String?
-  role          UserRole  @default(buyer)
-  is_active     Boolean?  @default(true)
-  registered_at DateTime? @default(now())
-  region_id     Int?
-  telegramId    BigInt?
-  created_at    DateTime? @default(now())
-  updated_at    DateTime? @updatedAt
+  id              Int       @id @default(autoincrement())
+  phone           String?
+  email           String?   @unique
+  name            String?
+  password        String?
+  role            UserRole  @default(buyer)
+  is_active       Boolean?  @default(true)
+  activation_link String?
+  otp_code        String?
+  otp_expire      DateTime?
+  region_id       Int?
+  telegramId      BigInt?
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
 
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
-  likes             likes[]
   carts             carts[]
   contracts         contracts[]         @relation("BuyerContracts")
   trade_in_requests trade_in_requests[]
@@ -133,7 +139,7 @@ model device_details {
 }
 
 model devices {
-  id         Int         @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   name       String
   type       DeviceType
   sale_type  SaleType     @default(website_sold)
@@ -144,15 +150,15 @@ model devices {
   details_id Int?
   is_active  Boolean?     @default(true)
   created_at DateTime?    @default(now())
-  updated_at DateTime?    @default(now()) @updatedAt
+  updated_at DateTime?    @updatedAt
 
-  seller            users?              @relation("UserDevices", fields: [seller_id], references: [id])
-  region            region?             @relation(fields: [region_id], references: [id])
-  details           device_details?     @relation(fields: [details_id], references: [id])
+  seller            users?          @relation("UserDevices", fields: [seller_id], references: [id])
+  region            region?         @relation(fields: [region_id], references: [id])
+  details           device_details? @relation(fields: [details_id], references: [id])
   device_images     device_images[]
-  trade_in_requests trade_in_requests[] @relation("NewDeviceRelation")
+  trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
+  trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
   carts             carts[]
-  likes             likes[]
   contracts         contracts[]
 }
 
@@ -169,15 +175,16 @@ model device_images {
 model trade_in_requests {
   id                Int       @id @default(autoincrement())
   seller_id         Int
-  old_device_name   String
-  estimated_value   Decimal
+  old_device_id     Int
   new_device_id     Int
+  estimated_value   Decimal
   approved          Boolean?  @default(false)
   difference_amount Decimal?
   created_at        DateTime? @default(now())
 
   seller     users       @relation(fields: [seller_id], references: [id])
   new_device devices     @relation("NewDeviceRelation", fields: [new_device_id], references: [id])
+  old_device devices     @relation("OldDeviceRelation", fields: [old_device_id], references: [id])
   contracts  contracts[]
 }
 
@@ -194,8 +201,8 @@ model carts {
 }
 
 model contracts {
-  id                Int             @id @default(autoincrement())
-  contract_number   String?         @default(uuid())
+  id                Int            @id @default(autoincrement())
+  contract_number   String?        @default(uuid())
   buyer_id          Int
   device_id         Int
   admin_id          Int?
@@ -210,7 +217,7 @@ model contracts {
   end_date          DateTime?
   is_trade_in       Boolean?       @default(false)
   created_at        DateTime?      @default(now())
-  updated_at        DateTime?      @default(now()) @updatedAt
+  updated_at        DateTime?      @updatedAt
 
   buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
   device           devices            @relation(fields: [device_id], references: [id])
@@ -222,41 +229,29 @@ model contracts {
 }
 
 model payment_schedule {
-  id          Int          @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   contract_id Int
   due_date    DateTime
   amount_due  Decimal
   paid_amount Decimal?
   status      PaymentStatus @default(pending)
   created_at  DateTime?     @default(now())
-  updated_at  DateTime?     @default(now()) @updatedAt
+  updated_at  DateTime?     @updatedAt
 
   contract contracts @relation(fields: [contract_id], references: [id])
 }
 
 model payments {
-  id           Int          @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   contract_id  Int
   amount       Decimal
   payment_date DateTime?     @default(now())
   method       PaymentMethod @default(cash)
   status       PaymentStatus @default(paid)
   created_at   DateTime?     @default(now())
-  updated_at   DateTime?     @default(now()) @updatedAt
+  updated_at   DateTime?     @updatedAt
 
   contract contracts @relation(fields: [contract_id], references: [id])
-}
-
-model likes {
-  id         Int       @id @default(autoincrement())
-  user_id    Int
-  device_id  Int
-  created_at DateTime? @default(now())
-
-  user   users   @relation(fields: [user_id], references: [id])
-  device devices @relation(fields: [device_id], references: [id])
-
-  @@unique([user_id, device_id])
 }
 
 model notifications {
