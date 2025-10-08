@@ -80,6 +80,34 @@ export class ContractsService {
     });
   }
 
+  async contractVerify(id: number) {
+    const total = await this.prisma.payments.aggregate({
+      where: { contract_id: id },
+      _sum: { amount: true },
+    });
+
+    const totalAmount = total._sum.amount || 0;
+
+    const updatedContract = this.prisma.contracts.update({
+      where: { id },
+      data: {
+        total_price: `${total}`,
+        updated_at: new Date(),
+      },
+      include: {
+        buyer: true,
+        device: true,
+        admin: true,
+        plan: true,
+        trade_in: true,
+        payment_schedule: true,
+        payments: true,
+      },
+    });
+
+    return updatedContract;
+  }
+
   async findAll() {
     return this.prisma.contracts.findMany({
       include: {
