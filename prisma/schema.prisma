@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  buyer
+  seller
+  support
+  admin
+  superadmin
+}
+
+enum DeviceType {
+  iphone
+  mac
+}
+
+enum DeviceStatus {
+  pending_approval
+  approved
+  rejected
+  sold
+}
+
+enum SaleType {
+  trade_in
+  seller_sold
+  website_sold
+}
+
+enum ContractStatus {
+  active
+  completed
+  defaulted
+  cancelled
+}
+
+enum PaymentMethod {
+  card
+  online
+  cash
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  late
+  failed
+}
+
+model region {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  users   users[]
+  devices devices[]
+}
+
+model admin {
+  id         Int       @id @default(autoincrement())
+  username   String    @unique
+  email      String?   @unique
+  full_name  String?
+  password   String?
+  is_active  Boolean?  @default(true)
+  token      String?
+  otp_code   String?
+  otp_expire DateTime?
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  contracts     contracts[]
+  notifications notifications[]
+}
+
+model users {
+  id              Int       @id @default(autoincrement())
+  phone           String?
+  email           String?   @unique
+  name            String?
+  password        String?
+  role            UserRole  @default(buyer)
+  is_active       Boolean?  @default(true)
+  activation_link String?
+  otp_code        String?
+  otp_expire      DateTime?
+  region_id       Int?
+  telegramId      BigInt?
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
+
+  region            region?             @relation(fields: [region_id], references: [id])
+  devices           devices[]           @relation("UserDevices")
+  carts             carts[]
+  contracts         contracts[]         @relation("BuyerContracts")
+  trade_in_requests trade_in_requests[]
+  notifications     notifications[]
+}
+
+model installment_plans {
+  id                    Int       @id @default(autoincrement())
+  months                Int
+  percent               Decimal?  @default(0)
+  first_payment_percent Decimal?  @default(0)
+  created_at            DateTime? @default(now())
+
+  contracts contracts[]
+}
+
+model sales_model {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @updatedAt
+}
+
+model device_details {
+  id             Int       @id @default(autoincrement())
+  color          String?
+  year           Int?
+  cpu            String?
+  ram            String?
+  storage        String?
+  display_size   String?
+  battery_health String?
+  description    String?
+  created_at     DateTime? @default(now())
+  updated_at     DateTime? @updatedAt
+
+  devices devices[]
+}
+
+model devices {
+  id         Int          @id @default(autoincrement())
+  name       String
+  type       DeviceType
+  sale_type  SaleType     @default(website_sold)
+  status     DeviceStatus @default(pending_approval)
+  seller_id  Int?
+  region_id  Int?
+  base_price Decimal
+  details_id Int?
+  is_active  Boolean?     @default(true)
+  created_at DateTime?    @default(now())
+  updated_at DateTime?    @updatedAt
+
+  seller            users?          @relation("UserDevices", fields: [seller_id], references: [id])
+  region            region?         @relation(fields: [region_id], references: [id])
+  details           device_details? @relation(fields: [details_id], references: [id])
+  device_images     device_images[]
+  trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
+  trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
+  carts             carts[]
+  contracts         contracts[]
+}
+
+model device_images {
+  id         Int       @id @default(autoincrement())
+  device_id  Int
+  url        String
+  is_primary Boolean?  @default(false)
+  created_at DateTime? @default(now())
+
+  device devices @relation(fields: [device_id], references: [id])
+}
+
+model trade_in_requests {
+  id                Int       @id @default(autoincrement())
+  seller_id         Int
+  old_device_id     Int
+  new_device_id     Int
+  estimated_value   Decimal
+  approved          Boolean?  @default(false)
+  difference_amount Decimal?
+  created_at        DateTime? @default(now())
+
+  seller     users       @relation(fields: [seller_id], references: [id])
+  new_device devices     @relation("NewDeviceRelation", fields: [new_device_id], references: [id])
+  old_device devices     @relation("OldDeviceRelation", fields: [old_device_id], references: [id])
+  contracts  contracts[]
+}
+
+model carts {
+  id        Int       @id @default(autoincrement())
+  user_id   Int
+  device_id Int
+  added_at  DateTime? @default(now())
+
+  user   users   @relation(fields: [user_id], references: [id])
+  device devices @relation(fields: [device_id], references: [id])
+
+  @@unique([user_id, device_id])
+}
+
+model contracts {
+  id                Int            @id @default(autoincrement())
+  contract_number   String?        @default(uuid())
+  buyer_id          Int
+  device_id         Int
+  admin_id          Int?
+  plan_id           Int?
+  trade_in_id       Int?
+  total_price       Decimal
+  monthly_payment   Decimal
+  duration_months   Int
+  remaining_balance Decimal
+  status            ContractStatus @default(active)
+  start_date        DateTime?      @default(now())
+  end_date          DateTime?
+  is_trade_in       Boolean?       @default(false)
+  created_at        DateTime?      @default(now())
+  updated_at        DateTime?      @updatedAt
+
+  buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
+  device           devices            @relation(fields: [device_id], references: [id])
+  admin            admin?             @relation(fields: [admin_id], references: [id])
+  plan             installment_plans? @relation(fields: [plan_id], references: [id])
+  trade_in         trade_in_requests? @relation(fields: [trade_in_id], references: [id])
+  payment_schedule payment_schedule[]
+  payments         payments[]
+}
+
+model payment_schedule {
+  id          Int           @id @default(autoincrement())
+  contract_id Int
+  due_date    DateTime
+  amount_due  Decimal
+  paid_amount Decimal?
+  status      PaymentStatus @default(pending)
+  created_at  DateTime?     @default(now())
+  updated_at  DateTime?     @updatedAt
+
+  contract contracts @relation(fields: [contract_id], references: [id])
+}
+
+model payments {
+  id           Int           @id @default(autoincrement())
+  contract_id  Int
+  amount       Decimal
+  payment_date DateTime?     @default(now())
+  method       PaymentMethod @default(cash)
+  status       PaymentStatus @default(paid)
+  created_at   DateTime?     @default(now())
+  updated_at   DateTime?     @updatedAt
+
+  contract contracts @relation(fields: [contract_id], references: [id])
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  admin_id   Int?
+  title      String
+  message    String
+  is_read    Boolean   @default(false)
+  created_at DateTime? @default(now())
+
+  user  users? @relation(fields: [user_id], references: [id])
+  admin admin? @relation(fields: [admin_id], references: [id])
+}
