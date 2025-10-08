@@ -40,11 +40,15 @@ export class UsersService {
   }
 
   async findByEmailOrPhone(value: string) {
-    return this.prisma.users.findFirst({
+    const user = this.prisma.users.findFirst({
       where: {
         OR: [{ email: value }, { phone: value }],
       },
     });
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    return user
   }
 
   async updateToken(userId: number, token: string | null) {
