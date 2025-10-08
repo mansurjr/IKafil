@@ -7,7 +7,7 @@ import { UsersService } from "../users/users.service";
 import { JwtService } from "../jwt/jwt.service";
 import * as bcrypt from "bcrypt";
 import { CreateUserDto } from "../users/dto/create-user.dto";
-import { SignInDto } from "./dto/sign-in.dto";
+import { SignInDto } from "../users/dto/sign-in.dto";
 import { Request, Response } from "express";
 
 @Injectable()
@@ -21,9 +21,7 @@ export class AuthService {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
     if (existing) throw new BadRequestException("Email already registered");
 
-    const user = await this.usersService.createUser({
-      dto,
-    });
+    const user = await this.usersService.createUser(dto);
     if (!user) throw new BadRequestException("Something went wrong");
 
     return { message: "User registered successfully", userId: user.id };
@@ -33,7 +31,7 @@ export class AuthService {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const valid = bcrypt.compare(dto.password, user.password as string);
     if (!valid) throw new UnauthorizedException("Invalid credentials");
 
     const { accessToken, refreshToken } =
