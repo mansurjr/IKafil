@@ -91,7 +91,7 @@ export class ContractsService {
     const updatedContract = this.prisma.contracts.update({
       where: { id },
       data: {
-        total_price: `${total}`,
+        total_price: `${totalAmount}`,
         updated_at: new Date(),
       },
       include: {
