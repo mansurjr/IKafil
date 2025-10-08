@@ -37,7 +37,7 @@ export class TradeInController {
   findAll() {
     return this.tradeInService.findAll();
   }
-
+// done
   @Get(":id")
   @ApiOperation({ summary: "Bitta trade-in so‘rovini ID orqali olish" })
   @ApiResponse({ status: 200, description: "Topilgan trade-in ma’lumotlari." })
