@@ -59,9 +59,9 @@ export class DeviceImagesService {
   }
 
   async remove(id: number) {
-     const device_image = await this.prisma.device_images.findUnique({
-       where: { id },
-     });
+    const device_image = await this.prisma.device_images.findUnique({
+      where: { id },
+    });
     if (!device_image) {
       throw new NotFoundException("Device image not found!");
     }
