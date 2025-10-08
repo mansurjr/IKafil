@@ -1,26 +1,72 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDeviceImageDto } from './dto/create-device-image.dto';
-import { UpdateDeviceImageDto } from './dto/update-device-image.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { CreateDeviceImageDto } from "./dto/create-device-image.dto";
+import { UpdateDeviceImageDto } from "./dto/update-device-image.dto";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class DeviceImagesService {
-  create(createDeviceImageDto: CreateDeviceImageDto) {
-    return 'This action adds a new deviceImage';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createDeviceImageDto: CreateDeviceImageDto) {
+    const device = await this.prisma.device_images.findUnique({
+      where: { id: createDeviceImageDto.device_id },
+    });
+    if (!device) {
+      throw new NotFoundException("Device not found");
+    }
+    return this.prisma.device_images.create({
+      data: {
+        url: createDeviceImageDto.url,
+        device_id: createDeviceImageDto.device_id,
+        is_primary: createDeviceImageDto.is_primary,
+      },
+    });
   }
 
   findAll() {
-    return `This action returns all deviceImages`;
+    return this.prisma.device_images.findMany({
+      include: {
+        device: true,
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} deviceImage`;
+  async findOne(id: number) {
+    const device_image = await this.prisma.device_images.findUnique({
+      where: { id },
+      include: { device: true },
+    });
+
+    if (!device_image) {
+      throw new NotFoundException("Device image not found");
+    }
+    return device_image;
   }
 
-  update(id: number, updateDeviceImageDto: UpdateDeviceImageDto) {
-    return `This action updates a #${id} deviceImage`;
+  async update(id: number, updateDeviceImageDto: UpdateDeviceImageDto) {
+    const device_image = await this.prisma.device_images.findUnique({
+      where: { id },
+      include: { device: true },
+    });
+
+    if (!device_image) {
+      throw new NotFoundException("Device image not found");
+    }
+    return this.prisma.device_images.update({
+      where: { id },
+      data: updateDeviceImageDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} deviceImage`;
+  async remove(id: number) {
+    const device_image = await this.prisma.device_images.findUnique({
+      where: { id },
+    });
+    if (!device_image) {
+      throw new NotFoundException("Device image not found!");
+    }
+
+    await this.prisma.device_images.delete({ where: { id } });
+    return { message: "Device image deleted!" };
   }
 }

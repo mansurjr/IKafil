@@ -17,12 +17,16 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
+import { MulterModule } from "@nestjs/platform-express";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: ".env",
       isGlobal: true,
+    }),
+    MulterModule.register({
+      dest: "./uploads",
     }),
     UsersModule,
     RegionModule,
@@ -34,7 +38,6 @@ import { JwtModule } from "./jwt/jwt.module";
     ContractsModule,
     PaymentsModule,
     CartsModule,
-    LikesModule,
     NotificationsModule,
     AuthModule,
     PrismaModule,

@@ -1,26 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-device.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateDeviceDto } from "./dto/create-device.dto";
+import { UpdateDeviceDto } from "./dto/update-device.dto";
 
 @Injectable()
 export class DevicesService {
-  create(createDeviceDto: CreateDeviceDto) {
-    return 'This action adds a new device';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createDeviceDto: CreateDeviceDto) {
+    return this.prisma.devices.create({
+      data: createDeviceDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all devices`;
+  async findAll() {
+    return this.prisma.devices.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} device`;
+  async findOne(id: number) {
+    return this.prisma.devices.findUnique({
+      where: { id },
+    });
   }
 
-  update(id: number, updateDeviceDto: UpdateDeviceDto) {
-    return `This action updates a #${id} device`;
+  async update(id: number, updateDeviceDto: UpdateDeviceDto) {
+    return this.prisma.devices.update({
+      where: { id },
+      data: updateDeviceDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} device`;
+  async remove(id: number) {
+    return this.prisma.devices.delete({
+      where: { id },
+    });
   }
 }

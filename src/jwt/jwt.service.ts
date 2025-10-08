@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService as NestJwtService } from "@nestjs/jwt";
 import { UserRole, users } from "@prisma/client";
+// import { UserRole, users } from "@prisma/client";
 
 export interface JWT_Payoad {
   id: number;
