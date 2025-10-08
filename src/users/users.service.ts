@@ -48,7 +48,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException("User not found");
     }
-    return user
+    return user;
   }
 
   async updateToken(userId: number, token: string | null) {
