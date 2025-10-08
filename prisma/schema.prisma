@@ -63,28 +63,13 @@ model region {
   devices devices[]
 }
 
-model admin {
-  id         Int       @id @default(autoincrement())
-  username   String    @unique
-  email      String?   @unique
-  full_name  String?
-  password   String?
-  is_active  Boolean?  @default(true)
-  token      String?
-  otp_code   String?
-  otp_expire DateTime?
-  created_at DateTime? @default(now())
-  updated_at DateTime? @updatedAt
-
-  contracts     contracts[]
-  notifications notifications[]
-}
-
 model users {
   id              Int       @id @default(autoincrement())
+  username        String?   @unique
   phone           String?
   email           String?   @unique
   name            String?
+  full_name       String?
   password        String?
   token           String?
   role            UserRole  @default(buyer)
@@ -97,10 +82,12 @@ model users {
   created_at      DateTime? @default(now())
   updated_at      DateTime? @updatedAt
 
+  // Relations
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
   carts             carts[]
-  contracts         contracts[]         @relation("BuyerContracts")
+  contracts_buyer   contracts[]         @relation("BuyerContracts")
+  contracts_admin   contracts[]         @relation("AdminContracts")
   trade_in_requests trade_in_requests[]
   notifications     notifications[]
 }
@@ -153,14 +140,14 @@ model devices {
   created_at DateTime?    @default(now())
   updated_at DateTime?    @updatedAt
 
-  seller            users?          @relation("UserDevices", fields: [seller_id], references: [id])
-  region            region?         @relation(fields: [region_id], references: [id])
-  details           device_details? @relation(fields: [details_id], references: [id])
-  device_images     device_images[]
+  seller               users?          @relation("UserDevices", fields: [seller_id], references: [id])
+  region               region?         @relation(fields: [region_id], references: [id])
+  details              device_details? @relation(fields: [details_id], references: [id])
+  device_images        device_images[]
   trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
   trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
-  carts             carts[]
-  contracts         contracts[]
+  carts                carts[]
+  contracts            contracts[]
 }
 
 model device_images {
@@ -202,8 +189,8 @@ model carts {
 }
 
 model contracts {
-  id                Int            @id @default(autoincrement())
-  contract_number   String?        @default(uuid())
+  id                Int             @id @default(autoincrement())
+  contract_number   String?         @default(uuid())
   buyer_id          Int
   device_id         Int
   admin_id          Int?
@@ -213,16 +200,16 @@ model contracts {
   monthly_payment   Decimal
   duration_months   Int
   remaining_balance Decimal
-  status            ContractStatus @default(active)
-  start_date        DateTime?      @default(now())
+  status            ContractStatus  @default(active)
+  start_date        DateTime?       @default(now())
   end_date          DateTime?
-  is_trade_in       Boolean?       @default(false)
-  created_at        DateTime?      @default(now())
-  updated_at        DateTime?      @updatedAt
+  is_trade_in       Boolean?        @default(false)
+  created_at        DateTime?       @default(now())
+  updated_at        DateTime?       @updatedAt
 
   buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
+  admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
   device           devices            @relation(fields: [device_id], references: [id])
-  admin            admin?             @relation(fields: [admin_id], references: [id])
   plan             installment_plans? @relation(fields: [plan_id], references: [id])
   trade_in         trade_in_requests? @relation(fields: [trade_in_id], references: [id])
   payment_schedule payment_schedule[]
@@ -258,12 +245,10 @@ model payments {
 model notifications {
   id         Int       @id @default(autoincrement())
   user_id    Int?
-  admin_id   Int?
   title      String
   message    String
   is_read    Boolean   @default(false)
   created_at DateTime? @default(now())
 
-  user  users? @relation(fields: [user_id], references: [id])
-  admin admin? @relation(fields: [admin_id], references: [id])
+  user users? @relation(fields: [user_id], references: [id])
 }
