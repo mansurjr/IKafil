@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtModule } from './jwt/jwt.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { JwtModule } from './jwt/jwt.module';
     AuthModule,
     PrismaModule,
     JwtModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
