@@ -1,26 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDeviceDetailDto } from './dto/create-device-detail.dto';
-import { UpdateDeviceDetailDto } from './dto/update-device-detail.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateDeviceDetailDto } from "./dto/create-device-detail.dto";
+import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
 
 @Injectable()
 export class DeviceDetailsService {
-  create(createDeviceDetailDto: CreateDeviceDetailDto) {
-    return 'This action adds a new deviceDetail';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createDeviceDetailDto: CreateDeviceDetailDto) {
+    return this.prisma.device_details.create({
+      data: createDeviceDetailDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all deviceDetails`;
+  async findAll() {
+    return this.prisma.device_details.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} deviceDetail`;
+  async findOne(id: number) {
+    return this.prisma.device_details.findUnique({
+      where: { id },
+    });
   }
 
-  update(id: number, updateDeviceDetailDto: UpdateDeviceDetailDto) {
-    return `This action updates a #${id} deviceDetail`;
+  async update(id: number, updateDeviceDetailDto: UpdateDeviceDetailDto) {
+    return this.prisma.device_details.update({
+      where: { id },
+      data: updateDeviceDetailDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} deviceDetail`;
+  async remove(id: number) {
+    return this.prisma.device_details.delete({
+      where: { id },
+    });
   }
 }
