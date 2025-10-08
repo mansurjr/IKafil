@@ -86,6 +86,7 @@ model users {
   email           String?   @unique
   name            String?
   password        String?
+  token           String?
   role            UserRole  @default(buyer)
   is_active       Boolean?  @default(true)
   activation_link String?
