@@ -86,20 +86,20 @@ export class ContractsService {
       _sum: { amount: true },
     });
 
-    const totalMonth = await this.prisma.payment_schedule.aggregate({
-      where: { contract_id: id },
-      _sum: { paid_amount: true },
-    });
+    // const totalMonth = await this.prisma.payment_schedule.aggregate({
+    //   where: { contract_id: id },
+    //   _sum: { paid_amount: true },
+    // });
 
     const totalAmount = total._sum.amount || 0 || "";
-    const totalMonthAmount = totalMonth._sum.paid_amount || 0 || "";
+    // const totalMonthAmount = totalMonth._sum.paid_amount || 0 || "";
 
     const updatedContract = this.prisma.contracts.update({
       where: { id },
       data: {
         total_price: `${totalAmount}`,
         updated_at: new Date(),
-        monthly_payment: `${totalMonthAmount}`,
+        // monthly_payment: `${totalMonthAmount}`,
       },
       include: {
         buyer: true,
