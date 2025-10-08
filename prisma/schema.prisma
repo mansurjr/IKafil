@@ -164,15 +164,15 @@ model trade_in_requests {
   id                Int       @id @default(autoincrement())
   seller_id         Int
   old_device_id     Int
-  new_device_id     Int
+  new_device_id     Int // 🔥 YANGI QATOR
   estimated_value   Decimal
   approved          Boolean?  @default(false)
   difference_amount Decimal?
   created_at        DateTime? @default(now())
 
   seller     users       @relation(fields: [seller_id], references: [id])
-  new_device devices     @relation("NewDeviceRelation", fields: [new_device_id], references: [id])
   old_device devices     @relation("OldDeviceRelation", fields: [old_device_id], references: [id])
+  new_device devices     @relation("NewDeviceRelation", fields: [new_device_id], references: [id])
   contracts  contracts[]
 }
 
