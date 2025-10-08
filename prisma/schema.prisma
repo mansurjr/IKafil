@@ -82,7 +82,6 @@ model users {
   created_at      DateTime? @default(now())
   updated_at      DateTime? @updatedAt
 
-  // Relations
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
   carts             carts[]
@@ -140,14 +139,14 @@ model devices {
   created_at DateTime?    @default(now())
   updated_at DateTime?    @updatedAt
 
-  seller               users?          @relation("UserDevices", fields: [seller_id], references: [id])
-  region               region?         @relation(fields: [region_id], references: [id])
-  details              device_details? @relation(fields: [details_id], references: [id])
-  device_images        device_images[]
+  seller                users?              @relation("UserDevices", fields: [seller_id], references: [id])
+  region                region?             @relation(fields: [region_id], references: [id])
+  details               device_details?     @relation(fields: [details_id], references: [id])
+  device_images         device_images[]
   trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
   trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
-  carts                carts[]
-  contracts            contracts[]
+  carts                 carts[]
+  contracts             contracts[]
 }
 
 model device_images {
@@ -189,8 +188,8 @@ model carts {
 }
 
 model contracts {
-  id                Int             @id @default(autoincrement())
-  contract_number   String?         @default(uuid())
+  id                Int            @id @default(autoincrement())
+  contract_number   String?        @default(uuid())
   buyer_id          Int
   device_id         Int
   admin_id          Int?
@@ -200,12 +199,12 @@ model contracts {
   monthly_payment   Decimal
   duration_months   Int
   remaining_balance Decimal
-  status            ContractStatus  @default(active)
-  start_date        DateTime?       @default(now())
+  status            ContractStatus @default(active)
+  start_date        DateTime?      @default(now())
   end_date          DateTime?
-  is_trade_in       Boolean?        @default(false)
-  created_at        DateTime?       @default(now())
-  updated_at        DateTime?       @updatedAt
+  is_trade_in       Boolean?       @default(false)
+  created_at        DateTime?      @default(now())
+  updated_at        DateTime?      @updatedAt
 
   buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
