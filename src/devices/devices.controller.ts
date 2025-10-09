@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
+  BadRequestException,
 } from "@nestjs/common";
 import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
@@ -17,6 +19,7 @@ import {
   ApiParam,
   ApiBody,
 } from "@nestjs/swagger";
+import { DeviceStatus } from "@prisma/client";
 
 @ApiTags("Devices")
 @Controller("devices")
@@ -29,6 +32,19 @@ export class DevicesController {
   @ApiBody({ type: CreateDeviceDto })
   create(@Body() createDeviceDto: CreateDeviceDto) {
     return this.devicesService.create(createDeviceDto);
+  }
+
+  @ApiOperation({ summary: "Search device according to the status" })
+  @ApiResponse({ status: 201, description: "Devices with the wanted status" })
+  @Get(":status")
+  getFiltered(@Param("status") status: string) {
+    if (!Object.values(DeviceStatus).includes(status as DeviceStatus)) {
+      throw new BadRequestException("Invalid status value");
+    }
+
+    return this.devicesService.findFilteredDevices({
+      status: status as DeviceStatus,
+    });
   }
 
   @Get()
