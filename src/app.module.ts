@@ -12,12 +12,14 @@ import { TradeInModule } from "./trade-in/trade-in.module";
 import { ContractsModule } from "./contracts/contracts.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { CartsModule } from "./carts/carts.module";
-import { LikesModule } from "./likes/likes.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
+import { UploadModule } from "./upload/upload.module";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
 
 @Module({
   imports: [
@@ -27,6 +29,10 @@ import { MulterModule } from "@nestjs/platform-express";
     }),
     MulterModule.register({
       dest: "./uploads",
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, "..", "uploads"),
+      serveRoot: "/uploads",
     }),
     UsersModule,
     RegionModule,
@@ -42,6 +48,7 @@ import { MulterModule } from "@nestjs/platform-express";
     AuthModule,
     PrismaModule,
     JwtModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
