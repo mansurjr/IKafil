@@ -8,7 +8,14 @@ export class RegionService {
     return 'This action adds a new region';
   }
 
-  findAll() {
+
+
+
+
+
+
+
+adsfasdffindAll() {
     return `This action returns all region`;
   }
 
