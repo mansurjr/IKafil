@@ -6,11 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { TradeInService } from "./trade-in.service";
 import { CreateTradeInDto } from "./dto/create-trade-in.dto";
 import { UpdateTradeInDto } from "./dto/update-trade-in.dto";
+import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 
 @ApiTags("Trade-In Requests")
 @Controller("trade-in")
@@ -18,13 +21,17 @@ export class TradeInController {
   constructor(private readonly tradeInService: TradeInService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Yangi trade-in so‘rovi yaratish" })
   @ApiResponse({
     status: 201,
     description: "Trade-in muvaffaqiyatli yaratildi.",
   })
   @ApiResponse({ status: 404, description: "Seller yoki qurilma topilmadi." })
-  create(@Body() createTradeInDto: CreateTradeInDto) {
+  create(
+    @Body() createTradeInDto: CreateTradeInDto,
+    @GetCurrentUser() userId: number
+  ) {
     return this.tradeInService.create(createTradeInDto);
   }
 
@@ -37,7 +44,7 @@ export class TradeInController {
   findAll() {
     return this.tradeInService.findAll();
   }
-// done
+  // done
   @Get(":id")
   @ApiOperation({ summary: "Bitta trade-in so‘rovini ID orqali olish" })
   @ApiResponse({ status: 200, description: "Topilgan trade-in ma’lumotlari." })
