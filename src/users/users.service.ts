@@ -48,22 +48,19 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException("User not found");
     }
-    return user
+    return user;
   }
 
   async updateToken(userId: number, token: string | null) {
-    let hashedToken: string | null = null;
-
-    if (token) {
-      hashedToken = await bcrypt.hash(token, 10);
-    }
-
-    const user = await this.prisma.users.update({
-      where: { id: userId },
-      data: { token: hashedToken },
-    });
-
-    return { id: user.id };
+    // let hashedToken: string | null = null;
+    // if (token) {
+    //   hashedToken = await bcrypt.hash(token, 10);
+    // }
+    // const user = await this.prisma.users.update({
+    //   where: { id: userId },
+    //   data: { token: hashedToken },
+    // });
+    // return { id: user.id };
   }
 
   async findById(id: number) {
