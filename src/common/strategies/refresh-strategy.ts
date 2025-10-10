@@ -2,7 +2,11 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-jwt";
 import { Request } from "express";
-import { JWT_Payoad, JwtService } from "../../jwt/jwt.service";
+import {
+  JWT_Payoad,
+  JWT_PayoadWithRefreshToken,
+  JwtService,
+} from "../../jwt/jwt.service";
 
 @Injectable()
 export class RefreshJwtStrategy extends PassportStrategy(
@@ -17,7 +21,10 @@ export class RefreshJwtStrategy extends PassportStrategy(
     });
   }
 
-  async validate(req: Request, payload: JWT_Payoad) {
+  async validate(
+    req: Request,
+    payload: JWT_Payoad
+  ): Promise<JWT_PayoadWithRefreshToken> {
     const token = req.cookies?.refreshToken;
     if (!token) {
       throw new UnauthorizedException("No refresh token found");

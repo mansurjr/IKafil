@@ -10,12 +10,16 @@ export interface JWT_Payoad {
   isActive: boolean;
 }
 
+export interface JWT_PayoadWithRefreshToken extends JWT_Payoad {
+  refreshToken: string;
+}
+
 @Injectable()
 export class JwtService {
   constructor(private readonly jwt: NestJwtService) {}
 
   async generateTokens(user: users) {
-    const payload:JWT_Payoad = {
+    const payload: JWT_Payoad = {
       id: user.id,
       email: user.email!,
       role: user.role,

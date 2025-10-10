@@ -82,7 +82,6 @@ model users {
   created_at      DateTime? @default(now())
   updated_at      DateTime? @updatedAt
 
-  // Relations
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
   carts             carts[]
@@ -164,7 +163,7 @@ model trade_in_requests {
   id                Int       @id @default(autoincrement())
   seller_id         Int
   old_device_id     Int
-  new_device_id     Int // 🔥 YANGI QATOR
+  new_device_id     Int
   estimated_value   Decimal
   approved          Boolean?  @default(false)
   difference_amount Decimal?
