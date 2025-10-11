@@ -23,6 +23,15 @@ import {
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
+  @Get("verify/:id")
+  @ApiOperation({ summary: "Verify contract by ID" })
+  @ApiParam({ name: "id", type: Number })
+  @ApiResponse({ status: 200, description: "Contract found." })
+  @ApiResponse({ status: 404, description: "Contract not found." })
+  contractVerify(@Param("id") id: string) {
+    return this.contractsService.findOne(+id);
+  }
+
   @Post()
   @ApiOperation({ summary: "Create a new contract" })
   @ApiBody({ type: CreateContractDto })

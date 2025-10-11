@@ -9,7 +9,7 @@ export class TradeInService {
 
   async create(dto: CreateTradeInDto & { seller_id: number }) {
     const [seller, oldDevice, newDevice] = await Promise.all([
-      this.prisma.users.findUnique({ where: { id: dto.seller_id } }),
+      this.prisma.users.findUnique({ where: { id: dto.seller_id } }), // ✅ to‘g‘ri seller tekshiruvi
       this.prisma.devices.findUnique({ where: { id: dto.old_device_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.new_device_id } }),
     ]);

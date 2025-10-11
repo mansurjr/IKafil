@@ -3,12 +3,12 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from "@nestjs/common";
-import { JWT_Payoad } from "../../jwt/jwt.service";
+import { JwtPayloadWithRefreshToken } from "../../jwt/jwt.service";
 
 export const GetCurrentUser = createParamDecorator(
-  (data: keyof JWT_Payoad | undefined, context: ExecutionContext) => {
+  (data: keyof JwtPayloadWithRefreshToken | undefined, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest();
-    const user = request.user as JWT_Payoad;
+    const user = request.user as JwtPayloadWithRefreshToken;
 
     if (!user) {
       throw new ForbiddenException("Foydalanuvchi aniqlanmadi");

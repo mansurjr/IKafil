@@ -13,7 +13,7 @@ import { TradeInService } from "./trade-in.service";
 import { CreateTradeInDto } from "./dto/create-trade-in.dto";
 import { UpdateTradeInDto } from "./dto/update-trade-in.dto";
 import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
-import { JWT_Payoad } from "../jwt/jwt.service";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 
 @ApiTags("Trade-In Requests")
 @Controller("trade-in")
@@ -21,6 +21,7 @@ export class TradeInController {
   constructor(private readonly tradeInService: TradeInService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Yangi trade-in so‘rovi yaratish" })
   @ApiResponse({
     status: 201,
