@@ -12,12 +12,13 @@ import { TradeInModule } from "./trade-in/trade-in.module";
 import { ContractsModule } from "./contracts/contracts.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { CartsModule } from "./carts/carts.module";
-import { LikesModule } from "./likes/likes.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
+import { MailModule } from './mail/mail.module';
+import { BotModule } from './bot/bot.module';
 
 @Module({
   imports: [
@@ -42,6 +43,8 @@ import { MulterModule } from "@nestjs/platform-express";
     AuthModule,
     PrismaModule,
     JwtModule,
+    MailModule,
+    BotModule,
   ],
   controllers: [AppController],
   providers: [AppService],

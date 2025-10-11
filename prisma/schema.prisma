@@ -65,12 +65,11 @@ model region {
 
 model users {
   id              Int       @id @default(autoincrement())
-  username        String?   @unique
+  username        String    @unique
   phone           String?
-  email           String?   @unique
-  name            String?
-  full_name       String?
-  password        String?
+  email           String    @unique
+  full_name       String
+  password        String
   token           String?
   role            UserRole  @default(buyer)
   is_active       Boolean?  @default(true)
@@ -79,8 +78,9 @@ model users {
   otp_expire      DateTime?
   region_id       Int?
   telegramId      BigInt?
-  created_at      DateTime? @default(now())
-  updated_at      DateTime? @updatedAt
+  resetLink       String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
