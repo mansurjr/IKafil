@@ -19,6 +19,9 @@ import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
 import { MailModule } from './mail/mail.module';
 import { BotModule } from './bot/bot.module';
+import { UploadModule } from "./upload/upload.module";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
 
 @Module({
   imports: [
@@ -28,6 +31,10 @@ import { BotModule } from './bot/bot.module';
     }),
     MulterModule.register({
       dest: "./uploads",
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, "..", "uploads"),
+      serveRoot: "/uploads",
     }),
     UsersModule,
     RegionModule,
@@ -45,6 +52,7 @@ import { BotModule } from './bot/bot.module';
     JwtModule,
     MailModule,
     BotModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,14 +9,6 @@ import {
 
 export class CreateTradeInDto {
   @ApiProperty({
-    example: 1,
-    description: "Seller ID (users jadvalidan keladi)",
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  seller_id: number;
-
-  @ApiProperty({
     example: 10,
     description: "Eski qurilma ID (devices jadvalidan)",
   })
