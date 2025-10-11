@@ -7,10 +7,18 @@ import { CreateContractDto } from "./dto/create-contract.dto";
 import { UpdateContractDto } from "./dto/update-contract.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import { PrismaClient } from "@prisma/client/extension";
+import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
+import { DevicesService } from "../devices/devices.service";
+import { InstallmentPlansService } from "../installment-plans/installment-plans.service";
 
 @Injectable()
 export class ContractsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deviceService: DevicesService,
+    private readonly planService: InstallmentPlansService
+  ) {}
+
   private async validateEntity<T>(
     model: keyof PrismaClient,
     id: number,
@@ -26,6 +34,7 @@ export class ContractsService {
   async create(dto: CreateContractDto) {
     const { buyer_id, device_id, admin_id, plan_id, trade_in_id } = dto;
 
+    // 1️⃣ Tekshirish
     await this.validateEntity("users", buyer_id, "Buyer");
     await this.validateEntity("devices", device_id, "Device");
     if (admin_id) await this.validateEntity("users", admin_id, "Admin");
@@ -34,8 +43,27 @@ export class ContractsService {
     if (trade_in_id)
       await this.validateEntity("trade_in_requests", trade_in_id, "Trade-in");
 
+    // 2️⃣ Qurilma va reja ma'lumotlarini olish
+    const device = await this.deviceService.findOne(device_id);
+    const plan = await this.planService.findOne(plan_id!);
+
+    if (!device || !plan) {
+      throw new BadRequestException("Device yoki Plan topilmadi");
+    }
+
+    const base_price = Number(device.base_price);
+    const months = Number(plan.months);
+    const percent = Number(plan.percent);
+
+    // 🧮 Hisoblash formulalari
+    const total_price = base_price * (1 + percent / 100);
+    const initial_payment = total_price / (months + 1);
+    const monthly_payment = total_price / months;
+    const remaining_balance = total_price - initial_payment;
+
+    // 3️⃣ Transaction
     return this.prisma.$transaction(async (tx) => {
-      // 1️⃣ Shartnomani yaratish
+      // Contract yaratish
       const contract = await tx.contracts.create({
         data: {
           buyer_id,
@@ -43,126 +71,73 @@ export class ContractsService {
           admin_id,
           plan_id,
           trade_in_id,
-          total_price: dto.total_price,
-          monthly_payment: dto.monthly_payment,
-          duration_months: dto.duration_months,
-          remaining_balance: dto.remaining_balance,
+          total_price,
+          monthly_payment,
+          duration_months: months,
+          remaining_balance,
+          initial_payment, // ✅ saqlaymiz
           status: dto.status ?? "active",
           start_date: dto.start_date ?? new Date(),
           end_date:
             dto.end_date ??
             new Date(
               new Date(dto.start_date ?? new Date()).setMonth(
-                new Date(dto.start_date ?? new Date()).getMonth() +
-                  dto.duration_months
+                new Date(dto.start_date ?? new Date()).getMonth() + months
               )
             ),
           is_trade_in: dto.is_trade_in ?? false,
         },
-        include: {
-          buyer: true,
-          device: true,
-          admin: true,
-          plan: true,
-          trade_in: true,
-        },
       });
 
-      // 2️⃣ Payment schedule yaratish
+      // 4️⃣ Payment schedule yaratish
       const startDate = new Date(dto.start_date ?? new Date());
-      const schedules: {
-        contract_id: number;
-        due_date: Date;
-        amount_due: number;
-        status: "pending";
-      }[] = [];
+      const schedules: Prisma.payment_scheduleCreateManyInput[] = [];
 
-      for (let i = 0; i < dto.duration_months; i++) {
+      for (let i = 0; i < months; i++) {
         const dueDate = new Date(startDate);
-        dueDate.setMonth(dueDate.getMonth() + i);
+        dueDate.setMonth(dueDate.getMonth() + (i + 1));
 
         schedules.push({
           contract_id: contract.id,
           due_date: dueDate,
-          amount_due: Number(dto.monthly_payment),
-          status: "pending",
+          amount_due: monthly_payment,
+          status: PaymentStatus.pending,
         });
       }
 
-      await tx.payment_schedule.createMany({
-        data: schedules,
-      });
+      await tx.payment_schedule.createMany({ data: schedules });
 
-      // 3️⃣ Har oy uchun payment yozuvlari ham yaratiladi
-      const paymentsData: {
-        contract_id: number;
-        amount: number;
-        method: "cash";
-        status: "pending";
-        payment_date: Date;
-      }[] = schedules.map((s) => ({
-        contract_id: contract.id,
-        amount: Number(dto.monthly_payment),
-        method: "cash",
-        status: "pending",
-        payment_date: s.due_date,
-      }));
-
-      await tx.payments.createMany({
-        data: paymentsData,
-      });
-
-      // 4️⃣ Natijani qaytarish (hammasi bilan birga)
-      const fullContract = await tx.contracts.findUnique({
-        where: { id: contract.id },
-        include: {
-          buyer: true,
-          device: true,
-          admin: true,
-          plan: true,
-          trade_in: true,
-          payment_schedule: true,
-          payments: true,
+      // 5️⃣ Payments yaratish (boshlang‘ich + oyma-oy)
+      const paymentsData: Prisma.paymentsCreateManyInput[] = [
+        {
+          contract_id: contract.id,
+          amount: initial_payment,
+          method: PaymentMethod.cash,
+          status: PaymentStatus.paid,
+          payment_date: new Date(),
         },
-      });
+        ...schedules.map((s) => ({
+          contract_id: contract.id,
+          amount: monthly_payment,
+          method: PaymentMethod.cash,
+          status: PaymentStatus.pending,
+          payment_date: s.due_date,
+        })),
+      ];
 
-      return fullContract;
+      await tx.payments.createMany({ data: paymentsData });
+
+      // 🔙 Natija
+      return {
+        message: "✅ Contract created successfully with initial payment",
+        contract_id: contract.id,
+        total_price,
+        initial_payment,
+        monthly_payment,
+        months,
+        percent,
+      };
     });
-  }
-
-  async contractVerify(id: number) {
-    const total = await this.prisma.payments.aggregate({
-      where: { contract_id: id },
-      _sum: { amount: true },
-    });
-
-    // const totalMonth = await this.prisma.payment_schedule.aggregate({
-    //   where: { contract_id: id },
-    //   _sum: { paid_amount: true },
-    // });
-
-    const totalAmount = total._sum.amount || 0 || "";
-    // const totalMonthAmount = totalMonth._sum.paid_amount || 0 || "";
-
-    const updatedContract = this.prisma.contracts.update({
-      where: { id },
-      data: {
-        total_price: `${totalAmount}`,
-        updated_at: new Date(),
-        // monthly_payment: `${totalMonthAmount}`,
-      },
-      include: {
-        buyer: true,
-        device: true,
-        admin: true,
-        plan: true,
-        trade_in: true,
-        payment_schedule: true,
-        payments: true,
-      },
-    });
-
-    return updatedContract;
   }
 
   async findAll() {

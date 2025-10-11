@@ -78,4 +78,6 @@ export class ContractsController {
   remove(@Param("id") id: string) {
     return this.contractsService.remove(+id);
   }
+
+  
 }
