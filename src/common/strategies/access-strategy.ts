@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { JWT_Payoad } from "../../jwt/jwt.service";
+import { JwtPayload } from "../../jwt/jwt.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
@@ -14,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
     });
   }
 
-  async validate(payload: JWT_Payoad) {
+  async validate(payload: JwtPayload) {
     if (!payload || !payload.id) {
       throw new UnauthorizedException("Invalid token");
     }

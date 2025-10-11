@@ -17,6 +17,8 @@ import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
+import { MailModule } from './mail/mail.module';
+import { BotModule } from './bot/bot.module';
 import { UploadModule } from "./upload/upload.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
@@ -48,6 +50,8 @@ import { join } from "path";
     AuthModule,
     PrismaModule,
     JwtModule,
+    MailModule,
+    BotModule,
     UploadModule,
   ],
   controllers: [AppController],
