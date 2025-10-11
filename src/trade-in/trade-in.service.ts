@@ -84,4 +84,21 @@ export class TradeInService {
 
     return this.prisma.trade_in_requests.delete({ where: { id } });
   }
+  async approve(id: number, approved: boolean) {
+    const tradeIn = await this.prisma.trade_in_requests.findUnique({
+      where: { id },
+    });
+
+    if (!tradeIn) throw new NotFoundException("Trade-in request not found");
+
+    return this.prisma.trade_in_requests.update({
+      where: { id },
+      data: { approved },
+      include: {
+        seller: true,
+        old_device: true,
+        new_device: true,
+      },
+    });
+  }
 }
