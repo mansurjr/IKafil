@@ -60,7 +60,7 @@ export class AuthService {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const valid = await bcrypt.compare(dto.password, user.password!);
     if (!valid) throw new UnauthorizedException("Invalid credentials");
 
     if (!user.is_active)

@@ -6,6 +6,7 @@ import {
 import { CreatePaymentDto } from "./dto/create-payment.dto";
 import { UpdatePaymentDto } from "./dto/update-payment.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { PaymentStatus } from "@prisma/client";
 
 @Injectable()
 export class PaymentsService {
@@ -62,5 +63,28 @@ export class PaymentsService {
     return this.prisma.payments.delete({
       where: { id },
     });
+  }
+  async getByBuyerIdAndStatus(buyerId: number, status?: PaymentStatus) {
+    const payments = await this.prisma.payments.findMany({
+      where: {
+        contract: {
+          buyer_id: buyerId,
+        },
+        ...(status ? { status } : {}), // Agar status berilgan bo‘lsa — filter qo‘llanadi
+      },
+      include: {
+        contract: true, // kerak bo‘lsa contract ma’lumotlari bilan qaytaradi
+      },
+    });
+
+    if (!payments.length) {
+      throw new NotFoundException(
+        `No payments found for buyer with id ${buyerId}${
+          status ? ` and status "${status}"` : ""
+        }`
+      );
+    }
+
+    return payments;
   }
 }
