@@ -14,10 +14,6 @@ enum UserRole {
   admin
   superadmin
 }
-enum PaymentType {
-  monthly
-  initial
-}
 
 enum DeviceType {
   iphone
@@ -236,7 +232,6 @@ model payment_schedule {
 model payments {
   id           Int           @id @default(autoincrement())
   contract_id  Int
-  type         PaymentType  @default(monthly)
   amount       Decimal
   payment_date DateTime?     @default(now())
   method       PaymentMethod @default(cash)

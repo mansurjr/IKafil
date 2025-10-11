@@ -82,3 +82,5 @@ export class InstallmentPlansController {
     return this.installmentPlansService.remove(+id);
   }
 }
+
+
