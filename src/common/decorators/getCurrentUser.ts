@@ -1,23 +1,23 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { PassportStrategy } from "@nestjs/passport";
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { ConfigService } from "@nestjs/config";
+import {
+  createParamDecorator,
+  ExecutionContext,
+  ForbiddenException,
+} from "@nestjs/common";
+import { JwtPayloadWithRefreshToken } from "../../jwt/jwt.service";
 
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: configService.get<string>("ACCESS_SECRET")!,
-    });
-  }
+export const GetCurrentUser = createParamDecorator(
+  (
+    data: keyof JwtPayloadWithRefreshToken | undefined,
+    context: ExecutionContext
+  ) => {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user as JwtPayloadWithRefreshToken;
 
-  async validate(payload: any) {
-    if (!payload || !payload.id) {
-      throw new UnauthorizedException("Invalid token");
+    if (!user) {
+      throw new ForbiddenException("Foydalanuvchi aniqlanmadi");
     }
 
-    return { id: payload.id, email: payload.email, role: payload.role };
+    return data ? user[data] : user;
   }
-}
+);
+

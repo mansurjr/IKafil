@@ -7,7 +7,7 @@ import { UpdateTradeInDto } from "./dto/update-trade-in.dto";
 export class TradeInService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateTradeInDto & { seller_id: number }) {
+  async create(dto: CreateTradeInDto) {
     const [seller, oldDevice, newDevice] = await Promise.all([
       this.prisma.users.findUnique({ where: { id: dto.seller_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.old_device_id } }),
