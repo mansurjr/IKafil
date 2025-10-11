@@ -1,67 +1,126 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from "@nestjs/common";
-import { CreatePaymentDto } from "./dto/create-payment.dto";
-import { UpdatePaymentDto } from "./dto/update-payment.dto";
 import { PrismaService } from "../prisma/prisma.service";
-import { PaymentStatus } from "@prisma/client";
+import { CreatePaymentDto } from "./dto/create-payment.dto";
+import { PaymentStatus, PaymentMethod } from "@prisma/client";
 
 @Injectable()
 export class PaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createPaymentDto: CreatePaymentDto) {
-    const existingPayment = await this.prisma.payments.findFirst({
-      where: { contract_id: createPaymentDto.contract_id },
+  async create(dto: CreatePaymentDto) {
+    const contract = await this.prisma.contracts.findUnique({
+      where: { id: dto.contract_id },
+      include: { payment_schedule: true },
     });
 
-    if (existingPayment) {
-      throw new BadRequestException("Payment already exists for this contract");
+    if (!contract) {
+      throw new NotFoundException(
+        `Contract with ID ${dto.contract_id} not found`
+      );
     }
 
-    return this.prisma.payments.create({
+    const schedule = await this.prisma.payment_schedule.findFirst({
+      where: { contract_id: dto.contract_id, status: PaymentStatus.pending },
+      orderBy: { due_date: "asc" },
+    });
+
+    if (!schedule) {
+      throw new BadRequestException("All payments are already completed.");
+    }
+
+    const payment = await this.prisma.payments.create({
       data: {
-        ...createPaymentDto,
+        contract_id: dto.contract_id,
+        amount: dto.amount,
+        method: dto.method ?? PaymentMethod.cash,
+        status: PaymentStatus.pending,
+        payment_date: new Date(),
+      },
+    });
+
+    return {
+      message: "Payment created successfully",
+      payment,
+    };
+  }
+
+  async confirmPayment(paymentId: number) {
+    const payment = await this.prisma.payments.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) throw new NotFoundException("Payment not found");
+
+    if (payment.status === PaymentStatus.paid)
+      throw new BadRequestException("Payment already completed");
+
+    const schedule = await this.prisma.payment_schedule.findFirst({
+      where: {
+        contract_id: payment.contract_id,
+        status: PaymentStatus.pending,
+      },
+      orderBy: { due_date: "asc" },
+    });
+
+    if (!schedule) throw new NotFoundException("No pending schedule found");
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.payments.update({
+        where: { id: paymentId },
+        data: { status: PaymentStatus.paid },
+      });
+
+      await tx.payment_schedule.update({
+        where: { id: schedule.id },
+        data: { status: PaymentStatus.paid },
+      });
+
+      const contract = await tx.contracts.findUnique({
+        where: { id: payment.contract_id },
+      });
+
+      await tx.contracts.update({
+        where: { id: payment.contract_id },
+        data: {
+          remaining_balance:
+            contract!.remaining_balance.toNumber() - payment.amount.toNumber(),
+        },
+      });
+
+      return { message: "Payment confirmed successfully" };
+    });
+  }
+
+  async rejectPayment(paymentId: number, reason?: string) {
+    const payment = await this.prisma.payments.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) throw new NotFoundException("Payment not found");
+
+    return this.prisma.payments.update({
+      where: { id: paymentId },
+      data: {
+        status: PaymentStatus.failed,
       },
     });
   }
 
+  async getPaymentsByContract(contract_id: number) {
+    return this.prisma.payments.findMany({
+      where: { contract_id },
+      orderBy: { payment_date: "asc" },
+    });
+  }
+
   async findAll() {
-    return this.prisma.payments.findMany();
-  }
-
-  async findOne(id: number) {
-    const payment = this.prisma.payments.findUnique({ where: { id } });
-    if (!payment) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-    return payment;
-  }
-
-  async update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    const payment = await this.prisma.payments.findUnique({
-      where: { id },
-    });
-
-    if (!payment) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-    return this.prisma.payments.update({
-      where: { id },
-      data: updatePaymentDto,
-    });
-  }
-
-  async remove(id: number) {
-    const existing = await this.prisma.payments.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-
-    return this.prisma.payments.delete({
-      where: { id },
+    return this.prisma.payments.findMany({
+      include: { contract: true },
+      orderBy: { payment_date: "desc" },
     });
   }
   async getByBuyerIdAndStatus(buyerId: number, status?: PaymentStatus) {
