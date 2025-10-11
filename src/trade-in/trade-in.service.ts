@@ -8,7 +8,6 @@ export class TradeInService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateTradeInDto) {
-    // Foydalanuvchilar va qurilmalar mavjudligini tekshirish
     const [seller, oldDevice, newDevice] = await Promise.all([
       this.prisma.users.findUnique({ where: { id: dto.seller_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.old_device_id } }),
