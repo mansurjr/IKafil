@@ -34,7 +34,7 @@ export class MailService {
   async sendMail(mail: string, activationLink: string): Promise<void> {
     const NewactivationLink = `${this.configService.get<string>(
       "APP_URL"
-    )}/auth/activate/${activationLink}`;
+    )}/api/auth/activate/${activationLink}`;
 
     const mailOptions = {
       from: this.configService.get<string>("SMTP_FROM"),
