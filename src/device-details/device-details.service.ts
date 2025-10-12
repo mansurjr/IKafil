@@ -14,7 +14,7 @@ export class DeviceDetailsService {
   }
 
   async findAll() {
-    return this.prisma.device_details.findMany();
+    return this.prisma.device_details.findMany({ include: { devices: true } });
   }
 
   async findOne(id: number) {

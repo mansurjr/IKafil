@@ -97,7 +97,21 @@ export class DevicesService {
     });
   }
 
-  async findAll(search?: string, page?: number | 1, limit?: number | 10) {
+  // async findFilteredDevices(filters?: { status?: DeviceStatus }) {
+  //   return this.prisma.devices.findMany({
+  //     where: {
+  //       ...(filters?.status && { status: filters.status }),
+  //     },
+  //     include: {
+  //       seller: true,
+  //     },
+  //   });
+  // }
+  async findAll(search?: string, page?: number, limit?: number) {
+    const safePage = Number(page) && page! > 0 ? page! : 1;
+    const number_limit = Number(limit) && limit! > 0 ? limit! : 10;
+    const skip = (safePage - 1) * number_limit;
+
     const filter: Prisma.devicesWhereInput[] = [];
     const device_type = Object.values(DeviceType);
     const sale_type = Object.values(SaleType);
@@ -130,20 +144,30 @@ export class DevicesService {
 
     const devices = await this.prisma.devices.findMany({
       where: conditions,
-      include: {
-        details: true,
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        sale_type: true,
+        status: true,
+        seller_id: true,
+        region_id: true,
+        base_price: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
         device_images: true,
       },
       orderBy: { created_at: "desc" },
-      skip: (page! - 1) * limit!,
-      take: limit,
+      skip,
+      take: number_limit,
     });
 
     return {
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit!),
+      page: safePage,
+      limit: number_limit,
+      totalPages: Math.ceil(total / number_limit),
       data: devices,
     };
   }
