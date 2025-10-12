@@ -65,6 +65,7 @@ export class CartService {
       throw new BadRequestException('Cartlarni olishda xatolik yuz berdi');
     }
   }
+  // 2423342
 
   async remove(id: number, userId: number) {
     try {
