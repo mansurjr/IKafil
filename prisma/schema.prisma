@@ -72,7 +72,7 @@ model users {
   password        String
   token           String?
   role            UserRole  @default(buyer)
-  is_active       Boolean?  @default(true)
+  is_active       Boolean?  @default(false)
   activation_link String?
   otp_code        String?
   otp_expire      DateTime?

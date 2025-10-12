@@ -30,13 +30,15 @@ export class AuthService {
 
   async register(dto: CreateUserDto) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
+    console.log(existing)
     if (existing) throw new BadRequestException("Email already registered");
 
     const activationLink = uuid.v4();
 
+    await this.mail.sendMail(dto.email, activationLink);
+
     const user = await this.usersService.createUser(dto, activationLink);
 
-    await this.mail.sendMail(user);
 
     return { message: "User registered successfully", userId: user.id };
   }
