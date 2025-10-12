@@ -65,12 +65,11 @@ model region {
 
 model users {
   id              Int       @id @default(autoincrement())
-  username        String?   @unique
+  username        String    @unique
   phone           String?
-  email           String?   @unique
-  name            String?
-  full_name       String?
-  password        String?
+  email           String    @unique
+  full_name       String
+  password        String
   token           String?
   role            UserRole  @default(buyer)
   is_active       Boolean?  @default(true)
@@ -79,10 +78,10 @@ model users {
   otp_expire      DateTime?
   region_id       Int?
   telegramId      BigInt?
-  created_at      DateTime? @default(now())
-  updated_at      DateTime? @updatedAt
+  resetLink       String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
-  // Relations
   region            region?             @relation(fields: [region_id], references: [id])
   devices           devices[]           @relation("UserDevices")
   carts             carts[]
@@ -140,14 +139,14 @@ model devices {
   created_at DateTime?    @default(now())
   updated_at DateTime?    @updatedAt
 
-  seller               users?          @relation("UserDevices", fields: [seller_id], references: [id])
-  region               region?         @relation(fields: [region_id], references: [id])
-  details              device_details? @relation(fields: [details_id], references: [id])
-  device_images        device_images[]
+  seller                users?              @relation("UserDevices", fields: [seller_id], references: [id])
+  region                region?             @relation(fields: [region_id], references: [id])
+  details               device_details?     @relation(fields: [details_id], references: [id])
+  device_images         device_images[]
   trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
   trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
-  carts                carts[]
-  contracts            contracts[]
+  carts                 carts[]
+  contracts             contracts[]
 }
 
 model device_images {
@@ -164,7 +163,7 @@ model trade_in_requests {
   id                Int       @id @default(autoincrement())
   seller_id         Int
   old_device_id     Int
-  new_device_id     Int // 🔥 YANGI QATOR
+  new_device_id     Int
   estimated_value   Decimal
   approved          Boolean?  @default(false)
   difference_amount Decimal?
@@ -189,23 +188,24 @@ model carts {
 }
 
 model contracts {
-  id                Int             @id @default(autoincrement())
-  contract_number   String?         @default(uuid())
+  id                Int            @id @default(autoincrement())
+  contract_number   String?        @default(uuid())
   buyer_id          Int
   device_id         Int
   admin_id          Int?
   plan_id           Int?
   trade_in_id       Int?
   total_price       Decimal
+  initial_payment   Decimal
   monthly_payment   Decimal
   duration_months   Int
   remaining_balance Decimal
-  status            ContractStatus  @default(active)
-  start_date        DateTime?       @default(now())
+  status            ContractStatus @default(active)
+  start_date        DateTime?      @default(now())
   end_date          DateTime?
-  is_trade_in       Boolean?        @default(false)
-  created_at        DateTime?       @default(now())
-  updated_at        DateTime?       @updatedAt
+  is_trade_in       Boolean?       @default(false)
+  created_at        DateTime?      @default(now())
+  updated_at        DateTime?      @updatedAt
 
   buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])

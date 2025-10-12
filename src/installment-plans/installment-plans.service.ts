@@ -51,7 +51,8 @@ export class InstallmentPlansService {
     if (!installment) {
       throw new NotFoundException(`Installment plan ID:${id} not found`);
     }
-    await this.prisma.installment_plans.delete({where: {id}})
-    return {message: "Installement deleted successfully!"}
+    await this.prisma.installment_plans.delete({ where: { id } });
+    return { message: "Installement deleted successfully!" };
   }
+  
 }

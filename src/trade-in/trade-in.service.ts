@@ -7,10 +7,9 @@ import { UpdateTradeInDto } from "./dto/update-trade-in.dto";
 export class TradeInService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateTradeInDto) {
-    // Foydalanuvchilar va qurilmalar mavjudligini tekshirish
+  async create(dto: CreateTradeInDto & { seller_id: number }) {
     const [seller, oldDevice, newDevice] = await Promise.all([
-      this.prisma.users.findUnique({ where: { id: dto.seller_id } }),
+      this.prisma.users.findUnique({ where: { id: dto.seller_id } }), // ✅ to‘g‘ri seller tekshiruvi
       this.prisma.devices.findUnique({ where: { id: dto.old_device_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.new_device_id } }),
     ]);
@@ -84,5 +83,22 @@ export class TradeInService {
     if (!tradeIn) throw new NotFoundException("Trade-in request not found");
 
     return this.prisma.trade_in_requests.delete({ where: { id } });
+  }
+  async approve(id: number, approved: boolean) {
+    const tradeIn = await this.prisma.trade_in_requests.findUnique({
+      where: { id },
+    });
+
+    if (!tradeIn) throw new NotFoundException("Trade-in request not found");
+
+    return this.prisma.trade_in_requests.update({
+      where: { id },
+      data: { approved },
+      include: {
+        seller: true,
+        old_device: true,
+        new_device: true,
+      },
+    });
   }
 }

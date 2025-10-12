@@ -1,22 +1,25 @@
 import {
   Controller,
-  Get,
   Post,
-  Body,
+  Get,
   Patch,
   Param,
-  Delete,
+  Body,
+  Query,
+  ParseIntPipe,
 } from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiQuery,
   ApiBody,
 } from "@nestjs/swagger";
 import { PaymentsService } from "./payments.service";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
-import { UpdatePaymentDto } from "./dto/update-payment.dto";
+import { PaymentStatus } from "@prisma/client";
+import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
 
 @ApiTags("Payments")
 @Controller("payments")
@@ -25,54 +28,75 @@ export class PaymentsController {
 
   @Post()
   @ApiOperation({ summary: "Create a new payment" })
-  @ApiResponse({ status: 201, description: "Payment successfully created" })
-  @ApiResponse({
-    status: 400,
-    description: "Invalid input data or duplicate payment",
-  })
   @ApiBody({ type: CreatePaymentDto })
-  create(@Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.create(createPaymentDto);
+  @ApiResponse({
+    status: 201,
+    description: "Payment created successfully",
+  })
+  async create(@Body() dto: CreatePaymentDto) {
+    return this.paymentsService.create(dto);
+  }
+
+  @Patch(":id/confirm")
+  @ApiOperation({ summary: "Confirm a payment by ID" })
+  @ApiParam({ name: "id", type: Number, example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: "Payment confirmed successfully",
+  })
+  async confirmPayment(@Param("id", ParseIntPipe) id: number) {
+    return this.paymentsService.confirmPayment(id);
+  }
+
+  @Patch(":id/reject")
+  @ApiOperation({ summary: "Reject a payment by ID" })
+  @ApiParam({ name: "id", type: Number, example: 1 })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        reason: { type: "string", example: "Invalid transaction" },
+      },
+    },
+  })
+  async rejectPayment(
+    @Param("id", ParseIntPipe) id: number,
+    @Body("reason") reason?: string
+  ) {
+    return this.paymentsService.rejectPayment(id, reason);
+  }
+
+  @Get("contract/:contract_id")
+  @ApiOperation({ summary: "Get all payments for a specific contract" })
+  @ApiParam({ name: "contract_id", type: Number, example: 1 })
+  async getPaymentsByContract(
+    @Param("contract_id", ParseIntPipe) contract_id: number
+  ) {
+    return this.paymentsService.getPaymentsByContract(contract_id);
+  }
+
+  @Get("own")
+  @ApiOperation({ summary: "Get user payments by status" })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    enum: PaymentStatus,
+    description: "Filter payments by status (e.g. PENDING, COMPLETED, FAILED)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "List of user payments returned successfully",
+  })
+  getByBuyerIdAndStatus(
+    @Query("status") status: PaymentStatus,
+    @GetCurrentUser() id: number
+  ) {
+    return this.paymentsService.getByBuyerIdAndStatus(id, status);
   }
 
   @Get()
   @ApiOperation({ summary: "Get all payments" })
-  @ApiResponse({
-    status: 200,
-    description: "List of all payments returned successfully",
-  })
-  findAll() {
+  async findAll() {
     return this.paymentsService.findAll();
-  }
-
-  @Get(":id")
-  @ApiOperation({ summary: "Get payment by ID" })
-  @ApiParam({ name: "id", type: Number, description: "Payment ID" })
-  @ApiResponse({
-    status: 200,
-    description: "Payment found and returned successfully",
-  })
-  @ApiResponse({ status: 404, description: "Payment not found" })
-  findOne(@Param("id") id: string) {
-    return this.paymentsService.findOne(+id);
-  }
-
-  @Patch(":id")
-  @ApiOperation({ summary: "Update a payment by ID" })
-  @ApiParam({ name: "id", type: Number, description: "Payment ID" })
-  @ApiBody({ type: UpdatePaymentDto })
-  @ApiResponse({ status: 200, description: "Payment updated successfully" })
-  @ApiResponse({ status: 404, description: "Payment not found" })
-  update(@Param("id") id: string, @Body() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentsService.update(+id, updatePaymentDto);
-  }
-
-  @Delete(":id")
-  @ApiOperation({ summary: "Delete a payment by ID" })
-  @ApiParam({ name: "id", type: Number, description: "Payment ID" })
-  @ApiResponse({ status: 200, description: "Payment deleted successfully" })
-  @ApiResponse({ status: 404, description: "Payment not found" })
-  remove(@Param("id") id: string) {
-    return this.paymentsService.remove(+id);
   }
 }

@@ -11,20 +11,19 @@ export class UploadService {
     mimetype: string;
     size: number;
   }) {
-     const device = await this.prisma.devices.findUnique({
-       where: { id: data.deviceId },
-     });
+    const device = await this.prisma.devices.findUnique({
+      where: { id: data.deviceId },
+    });
 
-     if (!device) {
-       throw new NotFoundException("Device not found");
-     }
-    {
-      return await this.prisma.device_images.create({
-        data: {
-          device_id: data.deviceId,
-          url: data.url,
-        },
-      });
+    if (!device) {
+      throw new NotFoundException("Device not found");
     }
+
+    return await this.prisma.device_images.create({
+      data: {
+        device_id: data.deviceId,
+        url: data.url,
+      },
+    });
   }
 }
