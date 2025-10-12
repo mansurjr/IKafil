@@ -7,10 +7,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { Express } from "express";
-import { v4 as uuidv4 } from "uuid";
+const { v4: uuidv4 } = require("uuid");
 import { join } from "path";
 import { writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
-import { Prisma, SaleType } from "@prisma/client";
+import { DeviceStatus, DeviceType, Prisma, SaleType } from "@prisma/client";
 import sharp from "sharp";
 
 @Injectable()
@@ -97,14 +97,55 @@ export class DevicesService {
     });
   }
 
-  async findAll() {
-    return this.prisma.devices.findMany({
+  async findAll(search?: string, page?: number | 1, limit?: number | 10) {
+    const filter: Prisma.devicesWhereInput[] = [];
+    const device_type = Object.values(DeviceType);
+    const sale_type = Object.values(SaleType);
+    const device_status = Object.values(DeviceStatus);
+
+    if (search) {
+      filter.push({
+        name: {
+          contains: search,
+          mode: Prisma.QueryMode.insensitive,
+        },
+      });
+
+      if (device_type.includes(search as DeviceType)) {
+        filter.push({ type: { equals: search as DeviceType } });
+      }
+
+      if (sale_type.includes(search as SaleType)) {
+        filter.push({ sale_type: { equals: search as SaleType } });
+      }
+
+      if (device_status.includes(search as DeviceStatus)) {
+        filter.push({ status: { equals: search as DeviceStatus } });
+      }
+    }
+
+    const conditions = filter.length ? { OR: filter } : {};
+
+    const total = await this.prisma.devices.count({ where: conditions });
+
+    const devices = await this.prisma.devices.findMany({
+      where: conditions,
       include: {
         details: true,
         device_images: true,
       },
       orderBy: { created_at: "desc" },
+      skip: (page! - 1) * limit!,
+      take: limit,
     });
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit!),
+      data: devices,
+    };
   }
 
   async findOne(id: number) {
