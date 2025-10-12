@@ -12,7 +12,6 @@ import { TradeInModule } from "./trade-in/trade-in.module";
 import { ContractsModule } from "./contracts/contracts.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { CartsModule } from "./carts/carts.module";
-// import { LikesModule } from "./likes/likes.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
