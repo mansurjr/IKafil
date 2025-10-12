@@ -5,8 +5,6 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma, contracts, payments, devices } from "@prisma/client";
-import { InjectBot } from "nestjs-telegraf";
-import { Telegraf } from "telegraf";
 
 type DeviceStatusKey = "published" | "pending" | "rejected" | "sold";
 
@@ -14,24 +12,8 @@ type DeviceStatusKey = "published" | "pending" | "rejected" | "sold";
 export class BotService {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectBot() readonly telegraf: Telegraf
   ) {}
 
-  async forwardMessage(
-    chatId: string,
-    fromChatId: string,
-    messageId: number
-  ): Promise<void> {
-    await this.telegraf.telegram.forwardMessage(chatId, fromChatId, messageId);
-  }
-
-  async sendMessage(
-    chatId: string,
-    message: string,
-    options?: any
-  ): Promise<void> {
-    await this.telegraf.telegram.sendMessage(chatId, message, options);
-  }
 
   async getBuyerContracts(buyerId: number, take = 10, skip = 0) {
     if (!buyerId) throw new BadRequestException("buyerId is required");
