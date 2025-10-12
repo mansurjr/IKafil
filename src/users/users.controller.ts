@@ -7,10 +7,12 @@ import {
   Param,
   Delete,
   BadRequestException,
+  Query,
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { UserRole } from "@prisma/client";
 
 @Controller("users")
 export class UsersController {
@@ -28,8 +30,21 @@ export class UsersController {
    * GET ALL USERS
    * ======================= */
   @Get()
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(
+    @Query("page") page: string,
+    @Query("limit") limit: string,
+    @Query("search") search: string,
+    @Query("role") role: UserRole
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
+
+    return this.usersService.findAll(
+      pageNumber,
+      limitNumber,
+      search || "",
+      role
+    );
   }
 
   /** =======================
