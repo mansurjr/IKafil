@@ -17,6 +17,7 @@ import sharp from "sharp";
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** 🔧 Utility: compress & save an image */
   private async compressAndSaveImage(
     file: Express.Multer.File,
     outputPath: string
@@ -32,12 +33,25 @@ export class DevicesService {
     }
   }
 
+  /** 🆕 Create device + details + images */
   async create(
     createDeviceDto: CreateDeviceDto,
     files?: Express.Multer.File[]
   ) {
     const { details, ...deviceData } = createDeviceDto;
 
+    // ✅ Validate seller requirement
+    if (
+      (deviceData.sale_type === SaleType.seller_sold ||
+        deviceData.sale_type === SaleType.trade_in) &&
+      !deviceData.seller_id
+    ) {
+      throw new BadRequestException(
+        "seller_id is required for trade_in or seller_sold devices"
+      );
+    }
+
+    // ✅ Handle file uploads
     const imageData: Prisma.device_imagesCreateWithoutDeviceInput[] = [];
 
     if (files?.length) {
@@ -63,22 +77,12 @@ export class DevicesService {
       }
     }
 
-    if (
-      (deviceData.sale_type === SaleType.seller_sold ||
-        deviceData.sale_type === SaleType.trade_in) &&
-      !deviceData.seller_id
-    ) {
-      throw new BadRequestException(
-        "seller_id is required for trade_in or seller_sold devices"
-      );
-    }
-
-    const data: Prisma.devicesCreateInput | Prisma.devicesUncheckedCreateInput =
-      {
+    return this.prisma.devices.create({
+      data: {
         ...deviceData,
         details: details
           ? {
-              create: details as Prisma.device_detailsCreateWithoutDevicesInput,
+              create: details as Prisma.device_detailsCreateWithoutDeviceInput,
             }
           : undefined,
         device_images: imageData.length
@@ -86,10 +90,7 @@ export class DevicesService {
               create: imageData,
             }
           : undefined,
-      };
-
-    return this.prisma.devices.create({
-      data: data as any,
+      },
       include: {
         details: true,
         device_images: true,
@@ -97,6 +98,7 @@ export class DevicesService {
     });
   }
 
+  /** 📋 Get all devices */
   async findAll() {
     return this.prisma.devices.findMany({
       include: {
@@ -107,6 +109,7 @@ export class DevicesService {
     });
   }
 
+  /** 🔍 Get one device */
   async findOne(id: number) {
     const device = await this.prisma.devices.findUnique({
       where: { id },
@@ -120,6 +123,7 @@ export class DevicesService {
     return device;
   }
 
+  /** ✏️ Update device + details + replace images */
   async update(
     id: number,
     updateDeviceDto: UpdateDeviceDto,
@@ -133,12 +137,14 @@ export class DevicesService {
     });
     if (!existing) throw new NotFoundException("Device not found");
 
+    const uploadPath = join(process.cwd(), "uploads", "devices");
     const imageData: Prisma.device_imagesCreateWithoutDeviceInput[] = [];
 
+    // ✅ Delete old images if new files uploaded
     if (files?.length) {
-      const uploadPath = join(process.cwd(), "uploads", "devices");
       if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
 
+      // Remove old files
       for (const img of existing.device_images) {
         const fileName = img.url.split("/").pop();
         if (fileName) {
@@ -147,6 +153,7 @@ export class DevicesService {
         }
       }
 
+      // Add new images
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.originalname.includes(".")
@@ -166,30 +173,28 @@ export class DevicesService {
       }
     }
 
-    const updateData:
-      | Prisma.devicesUpdateInput
-      | Prisma.devicesUncheckedUpdateInput = {
-      ...deviceData,
-      details: details
-        ? {
-            upsert: {
-              create: details as Prisma.device_detailsCreateWithoutDevicesInput,
-              update: details as Prisma.device_detailsUpdateWithoutDevicesInput,
-            },
-          }
-        : undefined,
-      device_images:
-        imageData.length > 0
-          ? {
-              deleteMany: {},
-              create: imageData,
-            }
-          : undefined,
-    };
-
     return this.prisma.devices.update({
       where: { id },
-      data: updateData as any,
+      data: {
+        ...deviceData,
+        details: details
+          ? {
+              upsert: {
+                create:
+                  details as Prisma.device_detailsCreateWithoutDeviceInput,
+                update:
+                  details as Prisma.device_detailsCreateWithoutDeviceInput,
+              },
+            }
+          : undefined,
+        device_images:
+          imageData.length > 0
+            ? {
+                deleteMany: {},
+                create: imageData,
+              }
+            : undefined,
+      },
       include: {
         details: true,
         device_images: true,
@@ -197,6 +202,7 @@ export class DevicesService {
     });
   }
 
+  /** 🗑️ Delete device + images + details */
   async remove(id: number) {
     const existing = await this.prisma.devices.findUnique({
       where: { id },
@@ -205,24 +211,17 @@ export class DevicesService {
 
     if (!existing) throw new NotFoundException("Device not found");
 
-    if (existing.device_images?.length) {
-      for (const img of existing.device_images) {
-        try {
-          const fileName = img.url.split("/").pop();
-          if (fileName) {
-            const filePath = join(
-              process.cwd(),
-              "uploads",
-              "devices",
-              fileName
-            );
-            if (existsSync(filePath)) unlinkSync(filePath);
-          }
-        } catch {}
+    // Delete image files
+    const uploadPath = join(process.cwd(), "uploads", "devices");
+    for (const img of existing.device_images) {
+      const fileName = img.url.split("/").pop();
+      if (fileName) {
+        const filePath = join(uploadPath, fileName);
+        if (existsSync(filePath)) unlinkSync(filePath);
       }
-
-      await this.prisma.device_images.deleteMany({ where: { device_id: id } });
     }
+
+    await this.prisma.device_images.deleteMany({ where: { device_id: id } });
 
     if (existing.details) {
       await this.prisma.device_details.delete({

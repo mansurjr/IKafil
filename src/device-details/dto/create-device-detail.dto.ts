@@ -13,6 +13,9 @@ export class CreateDeviceDetailDto {
   @ApiProperty({ example: "128GB" })
   ram: string;
 
+  @ApiProperty({ example: 10 })
+  device_id: number;
+
   @ApiProperty({ example: "512GB" })
   storage: string;
 

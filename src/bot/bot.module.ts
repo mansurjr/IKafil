@@ -9,7 +9,7 @@ import { UsersModule } from "../users/users.module";
 @Module({
   imports: [
     TelegrafModule.forRoot({
-      token: "8382177240:AAGPccV95MoQwA0sltN75hitlLBV7lfwDAA",
+      token: "8233416615:AAGRWAdDJW5A-CnCwBhYdCAgigXYkh3PxMY",
     }),
     AuthModule,
     UsersModule,
