@@ -1,67 +1,60 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  ParseIntPipe,
-  HttpCode,
-  HttpStatus,
+import { 
+  Controller, 
+  Post, 
+  Get, 
+  Delete, 
+  Param, 
+  Req, 
+  UseGuards, 
+  ParseIntPipe, 
+  UnauthorizedException, 
+  Body
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
-import { CartsService } from './carts.service';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { CartService } from './carts.service';
+import { JwtAuthGuard } from '../common/guards/accessToken.guard';
 import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
 
-@ApiTags('Carts')
-@Controller('carts')
-export class CartsController {
-  constructor(private readonly cartsService: CartsService) {}
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('cart')
+export class CartController {
+  constructor(private readonly cartService: CartService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Yangi cart (savatga qurilma) yaratish' })
-  @ApiResponse({ status: 201, description: 'Cart muvaffaqiyatli yaratildi' })
-  @ApiResponse({ status: 400, description: 'Xatolik yoki noto‘g‘ri ma’lumot' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        user_id: { type: 'integer', example: 1 },
-        device_id: { type: 'integer', example: 5 },
-      },
-      required: ['user_id', 'device_id'],
-    },
-  })
-  async create(@Body() dto: CreateCartDto) {
-    return this.cartsService.addToCart(dto.user_id, dto.device_id);
+  @ApiOperation({ summary: 'Foydalanuvchining savatiga qurilma qo‘shish' })
+  @ApiResponse({ status: 201, description: 'Qurilma savatga muvaffaqiyatli qo‘shildi' })
+  async addToCart(@Req() req: Request, @Body() dto: CreateCartDto) {
+    const user = req.user as { id: number };
+    if (!user?.id) throw new UnauthorizedException('Avtorizatsiya topilmadi');
+    return this.cartService.addToCart(user.id, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Barcha cartlarni olish' })
-  @ApiResponse({ status: 200, description: 'Cartlar ro‘yxati' })
-  findAll() {
-    return this.cartsService.findAll();
+  async findAll(@Req() req: Request) {
+    const user = req.user as { id: number };
+    if (!user?.id) {
+      throw new UnauthorizedException('Avtorizatsiya topilmadi');
+    }
+    return this.cartService.findAll(user.id);
   }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'ID bo‘yicha bitta cartni olish' })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
-  @ApiResponse({ status: 200, description: 'Cart topildi' })
-  @ApiResponse({ status: 404, description: 'Cart topilmadi' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.cartsService.findOne(id);
-  }
-
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Cartni o‘chirish' })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
-  @ApiResponse({ status: 200, description: 'Cart muvaffaqiyatli o‘chirildi' })
-  @ApiResponse({ status: 404, description: 'Cart topilmadi' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.cartsService.remove(id);
+  async remove(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    const user = req.user as { id: number };
+    if (!user?.id) {
+      throw new UnauthorizedException('Avtorizatsiya topilmadi');
+    }
+    return this.cartService.remove(id, user.id);
+  }
+
+  @Delete()
+  async removeAll(@Req() req: Request) {
+    const user = req.user as { id: number };
+    if (!user?.id) {
+      throw new UnauthorizedException('Avtorizatsiya topilmadi');
+    }
+    return this.cartService.removeAllForUser(user.id);
   }
 }

@@ -2,12 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsOptional } from 'class-validator';
 
 export class CreateCartDto {
-  @ApiProperty({
-    example: 1,
-    description: 'User ID (foydalanuvchi identifikatori)',
-  })
-  @IsInt({ message: 'user_id butun son bo‘lishi kerak' })
-  user_id: number;
 
   @ApiProperty({
     example: 5,
