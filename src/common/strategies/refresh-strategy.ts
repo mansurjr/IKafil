@@ -21,7 +21,7 @@ export class RefreshJwtStrategy extends PassportStrategy(
     });
   }
 
-  async validate(req: Request, payload: JwtPayloadWithRefreshToken) {
+  async validate(req: Request, payload: JwtPayload) {
     const token = req.cookies?.refreshToken;
     if (!token) {
       throw new UnauthorizedException("No refresh token found");
