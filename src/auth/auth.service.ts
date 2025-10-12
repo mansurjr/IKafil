@@ -30,7 +30,7 @@ export class AuthService {
 
   async register(dto: CreateUserDto) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
-    console.log(existing)
+    console.log(existing);
     if (existing) throw new BadRequestException("Email already registered");
 
     const activationLink = uuid.v4();
@@ -38,7 +38,6 @@ export class AuthService {
     await this.mail.sendMail(dto.email, activationLink);
 
     const user = await this.usersService.createUser(dto, activationLink);
-
 
     return { message: "User registered successfully", userId: user.id };
   }
@@ -84,7 +83,7 @@ export class AuthService {
     if (!user) throw new NotFoundException("User not found");
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + 60 * 1000);
 
     await this.prisma.users.update({
       where: { id: user.id },
@@ -127,7 +126,7 @@ export class AuthService {
     if (!user) throw new BadRequestException("User not found");
 
     const token = uuid.v4();
-    const resetLink = `${this.config.get("APP_URL")}/reset-password/${token}`;
+    const resetLink = `${this.config.get("APP_URL")}/api/reset-password/${token}`;
 
     await this.prisma.users.update({
       where: { id: user.id },
