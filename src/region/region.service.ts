@@ -1,26 +1,44 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 import { CreateRegionDto } from "./dto/create-region.dto";
 import { UpdateRegionDto } from "./dto/update-region.dto";
 
 @Injectable()
 export class RegionService {
-  create(createRegionDto: CreateRegionDto) {
-    return "This action adds a new region";
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createRegionDto: CreateRegionDto) {
+    return this.prisma.region.create({
+      data: createRegionDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all region`;
+  async findAll() {
+    return this.prisma.region.findMany({
+      orderBy: { id: "asc" },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} region`;
+  async findOne(id: number) {
+    const region = await this.prisma.region.findUnique({
+      where: { id },
+    });
+    if (!region) throw new NotFoundException(`Region with ID ${id} not found`);
+    return region;
   }
 
-  update(id: number, updateRegionDto: UpdateRegionDto) {
-    return `This action updates a #${id} region`;
+  async update(id: number, updateRegionDto: UpdateRegionDto) {
+    await this.findOne(id);
+    return this.prisma.region.update({
+      where: { id },
+      data: updateRegionDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} region`;
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prisma.region.delete({
+      where: { id },
+    });
   }
 }
