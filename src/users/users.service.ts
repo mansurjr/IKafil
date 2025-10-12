@@ -58,7 +58,6 @@ export class UsersService {
         OR: [{ email: value }, { phone: value }],
       },
     });
-    if (!user) throw new NotFoundException("User not found");
     return user;
   }
 
