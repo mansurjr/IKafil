@@ -13,6 +13,7 @@ import {
   ValidationPipe,
   BadRequestException,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import {
@@ -28,6 +29,9 @@ import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { Express } from "express";
+import { DeviceSaleStatus } from "@prisma/client";
+import { GetCurrentUser } from "../common/decorators/getCurrentUser";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 
 @ApiTags("Devices")
 @Controller("devices")
@@ -49,6 +53,7 @@ export class DevicesController {
     @Body() createDeviceDto: any,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
+    // Parse details JSON if passed as string
     if (typeof createDeviceDto.details === "string") {
       try {
         createDeviceDto.details = JSON.parse(createDeviceDto.details);
@@ -61,7 +66,6 @@ export class DevicesController {
 
   @Get()
   @ApiOperation({ summary: "Get all devices" })
-  @ApiResponse({ status: 200, description: "List of devices returned." })
   @ApiQuery({
     name: "search",
     required: false,
@@ -76,6 +80,31 @@ export class DevicesController {
     @Query("limit", ParseIntPipe) limit = 10
   ) {
     return this.devicesService.findAll(search, page, limit);
+  }
+  @Get("seller/own")
+  @ApiOperation({ summary: "Get seller's own devices by status" })
+  @ApiParam({ name: "sellerId", type: Number })
+  @ApiQuery({
+    name: "isActive",
+    required: false,
+    type: Boolean,
+    example: true,
+  })
+  @ApiQuery({
+    name: "saleStatus",
+    required: false,
+    enum: DeviceSaleStatus,
+  })
+  @UseGuards(JwtAuthGuard)
+  async getOwnDevices(
+    @GetCurrentUser("id") sellerId: number,
+    @Query("isActive") isActive?: boolean,
+    @Query("saleStatus") saleStatus?: DeviceSaleStatus
+  ) {
+    return this.devicesService.getOwnDevicesByStatus(sellerId, {
+      isActive,
+      saleStatus,
+    });
   }
 
   @Get(":id")
@@ -104,6 +133,14 @@ export class DevicesController {
     @Body() updateDeviceDto: UpdateDeviceDto,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
+    // Parse details JSON if passed as string
+    if (typeof updateDeviceDto.details === "string") {
+      try {
+        updateDeviceDto.details = JSON.parse(updateDeviceDto.details);
+      } catch {
+        throw new BadRequestException('Invalid JSON format in "details" field');
+      }
+    }
     return this.devicesService.update(id, updateDeviceDto, files);
   }
 

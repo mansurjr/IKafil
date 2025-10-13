@@ -34,7 +34,7 @@ export class CreateContractDto {
   })
   @IsOptional()
   @IsInt({ message: "admin_id butun son (integer) bolishi kerak" })
-  admin_id?: number;
+  admin_id: number;
 
   @ApiProperty({
     example: 3,
@@ -44,7 +44,7 @@ export class CreateContractDto {
   })
   @IsOptional()
   @IsInt({ message: "plan_id butun son (integer) bolishi kerak" })
-  plan_id?: number;
+  plan_id: number;
 
   @ApiProperty({
     example: 4,
@@ -55,37 +55,6 @@ export class CreateContractDto {
   @IsOptional()
   @IsInt({ message: "trade_in_id butun son (integer) bolishi kerak" })
   trade_in_id?: number;
-
-  @ApiProperty({
-    example: 1200.5,
-    description: "Shartnoma boyicha jami tolov summasi (USD yoki somda).",
-  })
-  @Type(() => Number)
-  @IsNumber({}, { message: "total_price raqam (number) bolishi kerak" })
-  total_price: number;
-
-  @ApiProperty({
-    example: 100.42,
-    description: "Har oylik tolov miqdori.",
-  })
-  @Type(() => Number)
-  @IsNumber({}, { message: "monthly_payment raqam (number) bolishi kerak" })
-  monthly_payment: number;
-
-  @ApiProperty({
-    example: 800.25,
-    description: "Tolanmagan (qolgan) summa.",
-  })
-  @Type(() => Number)
-  @IsNumber({}, { message: "remaining_balance raqam (number) bolishi kerak" })
-  remaining_balance: number;
-
-  @ApiProperty({
-    example: 12,
-    description: "Shartnomaning davomiyligi (oylarda).",
-  })
-  @IsInt({ message: "duration_months butun son (integer) bolishi kerak" })
-  duration_months: number;
 
   @ApiProperty({
     description: "Shartnoma holati (`ContractStatus` enum qiymatlari).",

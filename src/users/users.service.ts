@@ -8,47 +8,73 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import * as bcrypt from "bcrypt";
 import { Prisma, UserRole, users } from "@prisma/client";
+import { MailService } from "../mail/mail.service";
+import { v4 as uuid } from "uuid";
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private mailService: MailService
+  ) {}
 
-  /** =======================
-   * CREATE USER
-   * ======================= */
   async createUser(dto: CreateUserDto, activationLink?: string) {
-    if (dto.password !== dto.confirmPassword) {
-      throw new BadRequestException("Passwords do not match");
+    let username = dto.username;
+    let password = dto.password;
+
+    const region = await this.prisma.region.findUnique({
+      where: { id: dto.region_id },
+    });
+    if (!region) throw new BadRequestException("Region not found");
+
+    if (dto.role === UserRole.seller || dto.role === UserRole.admin) {
+      username = `${dto.role}_${uuid().slice(0, 8)}`;
+      password = Math.random().toString(36).slice(-8);
+    } else {
+      if (dto.password !== dto.confirmPassword) {
+        throw new BadRequestException("Passwords do not match");
+      }
+      if (!password || dto.confirmPassword || !username) {
+        throw new BadRequestException(
+          "Password and confirm password are required for buyers"
+        );
+      }
     }
 
     const existingUser = await this.prisma.users.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+      where: { OR: [{ email: dto.email }, { username }] },
     });
-
     if (existingUser) {
       throw new BadRequestException(
         "User with this email or username already exists"
       );
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = await this.prisma.users.create({
       data: {
-        username: dto.username,
+        username: username ? username : "",
         email: dto.email,
         full_name: dto.full_name,
         phone: dto.phone || null,
         password: hashedPassword,
-        role: dto.role || "buyer",
+        role: dto.role || UserRole.buyer,
         activation_link: activationLink || null,
         region_id: dto.region_id,
+        is_active:
+          dto.role === UserRole.seller || dto.role === UserRole.admin
+            ? true
+            : false,
       },
     });
 
+    if (dto.role === UserRole.seller || dto.role === UserRole.admin) {
+      await this.mailService.sendNewCredentialsMail(user, password);
+    }
+
     return this._excludePassword(user);
   }
-
   /** =======================
    * UPDATE TOKEN
    * ======================= */
@@ -92,12 +118,10 @@ export class UsersService {
 
     const where: any = {};
 
-    // Role filter
     if (role) {
       where.role = role;
     }
 
-    // Search by email, username, phone
     if (search) {
       where.OR = [
         { email: { contains: search, mode: "insensitive" } },

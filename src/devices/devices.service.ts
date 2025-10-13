@@ -10,10 +10,10 @@ import { Express } from "express";
 const { v4: uuidv4 } = require("uuid");
 import { join } from "path";
 import { writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
-import { DeviceType, Prisma, SaleType } from "@prisma/client";
+import { DeviceSaleStatus, DeviceType, Prisma, SaleType } from "@prisma/client";
 import sharp from "sharp";
 
-@Injectable()
+@Injectable() 
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -261,5 +261,31 @@ export class DevicesService {
     }
 
     return this.prisma.devices.delete({ where: { id } });
+  }
+  async getOwnDevicesByStatus(
+    sellerId: number,
+    filters?: {
+      isActive?: boolean;
+      saleStatus?: DeviceSaleStatus;
+    }
+  ) {
+    const where: Prisma.devicesWhereInput = {
+      seller_id: sellerId,
+      ...(filters?.isActive !== undefined
+        ? { is_active: filters.isActive }
+        : {}),
+      ...(filters?.saleStatus ? { sale_status: filters.saleStatus } : {}),
+    };
+
+    const devices = await this.prisma.devices.findMany({
+      where,
+      include: {
+        details: true,
+        device_images: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    return devices;
   }
 }

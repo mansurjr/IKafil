@@ -7,75 +7,103 @@ import {
   MinLength,
   IsInt,
   IsPositive,
+  ValidateIf,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
 } from "class-validator";
 import { UserRole } from "@prisma/client";
 
+@ValidatorConstraint({ name: "PasswordsMatch", async: false })
+export class PasswordsMatch implements ValidatorConstraintInterface {
+  validate(confirmPassword: any, args: ValidationArguments) {
+    const object: any = args.object;
+    if (object.role === UserRole.seller || object.role === UserRole.admin)
+      return true;
+    return object.password === confirmPassword;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return "Password and confirm password do not match";
+  }
+}
+
 export class CreateUserDto {
   @ApiProperty({
-    example: "qobiljon_99",
-    description: "Foydalanuvchining foydalanuvchi nomi (unique username)",
-  })
-  @IsString({ message: "Username matn bolishi kerak" })
-  username: string;
-
-  @ApiProperty({
-    example: "Qobiljon Yuldashev",
-    description: "Foydalanuvchining toliq ismi",
-  })
-  @IsString({ message: "Toliq ism matn bolishi kerak" })
-  full_name: string;
-
-  @ApiProperty({
-    example: "qobiljon@example.com",
-    description: "Foydalanuvchining elektron pochtasi",
-  })
-  @IsEmail({}, { message: "Email manzili notogri formatda kiritilgan" })
-  email: string;
-
-  @ApiProperty({
-    example: "+998901234567",
-    description: "Foydalanuvchining telefon raqami (ixtiyoriy)",
+    example: "john_doe_99",
+    description: "The user's unique username (optional for sellers)",
     required: false,
   })
   @IsOptional()
-  @IsString({ message: "Telefon raqami matn bolishi kerak" })
+  @IsString({ message: "Username must be a string" })
+  username?: string;
+
+  @ApiProperty({
+    example: "John Doe",
+    description: "The full name of the user",
+  })
+  @IsString({ message: "Full name must be a string" })
+  full_name: string;
+
+  @ApiProperty({
+    example: "john@example.com",
+    description: "The user's email address",
+  })
+  @IsEmail({}, { message: "Invalid email format" })
+  email: string;
+
+  @ApiProperty({
+    example: "+1234567890",
+    description: "The user's phone number (optional)",
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: "Phone number must be a string" })
   phone?: string;
 
   @ApiProperty({
     example: "myStrongPassword123",
-    description: "Foydalanuvchi paroli (kamida 6 ta belgi)",
+    description:
+      "The user's password (at least 6 characters, required for non-sellers/admins)",
     minLength: 6,
+    required: false,
   })
-  @IsString({ message: "Parol matn bolishi kerak" })
-  @MinLength(6, { message: "Parol kamida 6 ta belgidan iborat bolishi kerak" })
-  password: string;
+  @ValidateIf((o) => o.role !== UserRole.seller && o.role !== UserRole.admin)
+  @IsString({ message: "Password must be a string" })
+  @MinLength(6, { message: "Password must be at least 6 characters long" })
+  password?: string;
 
   @ApiProperty({
     example: "myStrongPassword123",
-    description: "Parolni tasdiqlash (password bilan bir xil bolishi kerak)",
+    description:
+      "Password confirmation (must match the password, required for non-sellers/admins)",
     minLength: 6,
+    required: false,
   })
-  @IsString({ message: "Tasdiqlovchi parol matn bolishi kerak" })
+  @ValidateIf((o) => o.role !== UserRole.seller && o.role !== UserRole.admin)
+  @IsString({ message: "Confirm password must be a string" })
   @MinLength(6, {
-    message: "Tasdiqlovchi parol kamida 6 ta belgidan iborat bolishi kerak",
+    message: "Confirm password must be at least 6 characters long",
   })
-  confirmPassword: string;
+  @Validate(PasswordsMatch)
+  confirmPassword?: string;
 
   @ApiProperty({
     example: UserRole.buyer,
     enum: UserRole,
-    description: "Foydalanuvchi roli (ixtiyoriy)",
+    description: "The role of the user (optional)",
     required: false,
   })
   @IsOptional()
-  @IsEnum(UserRole, { message: "Notogri foydalanuvchi roli tanlangan" })
+  @IsEnum(UserRole, { message: "Invalid user role selected" })
   role?: UserRole;
 
   @ApiProperty({
     example: 1,
-    description: "Foydalanuvchining tegishli hududi (region ID)",
+    description: "The user's assigned region ID",
   })
-  @IsInt({ message: "Region ID butun son bolishi kerak" })
-  @IsPositive({ message: "Region ID musbat son bolishi kerak" })
+  @IsInt({ message: "Region ID must be an integer" })
+  @IsPositive({ message: "Region ID must be a positive number" })
   region_id: number;
 }
