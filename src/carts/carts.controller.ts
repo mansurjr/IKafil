@@ -27,10 +27,10 @@ export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Post()
-  @ApiOperation({ summary: "Foydalanuvchining savatiga qurilma qo‘shish" })
+  @ApiOperation({ summary: "Foydalanuvchining savatiga qurilma qoshish" })
   @ApiResponse({
     status: 201,
-    description: "Qurilma savatga muvaffaqiyatli qo‘shildi",
+    description: "Qurilma savatga muvaffaqiyatli qoshildi",
   })
   async addToCart(
     @GetCurrentUser("id", ParseIntPipe) userId: number,
@@ -48,18 +48,18 @@ export class CartController {
 
   @Delete()
   @ApiOperation({
-    summary: "Foydalanuvchining barcha savat elementlarini o‘chirish",
+    summary: "Foydalanuvchining barcha savat elementlarini ochirish",
   })
-  @ApiResponse({ status: 200, description: "Barcha elementlar o‘chirildi" })
+  @ApiResponse({ status: 200, description: "Barcha elementlar ochirildi" })
   async bulkRemove(@GetCurrentUser("id", ParseIntPipe) userId: number) {
     return await this.cartService.removeAllForUser(userId);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Savatdan bitta elementni o‘chirish" })
+  @ApiOperation({ summary: "Savatdan bitta elementni ochirish" })
   @ApiResponse({
     status: 200,
-    description: "Element muvaffaqiyatli o‘chirildi",
+    description: "Element muvaffaqiyatli ochirildi",
   })
   async remove(
     @Param("id", ParseIntPipe) id: number,

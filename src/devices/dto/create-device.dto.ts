@@ -19,7 +19,7 @@ export class CreateDeviceDetailsDto {
     description: "Qurilmaning rangi (masalan, Midnight Blue, Silver, Gold).",
   })
   @IsOptional()
-  @IsString({ message: "color matn (string) bo‘lishi kerak" })
+  @IsString({ message: "color matn (string) bolishi kerak" })
   color?: string;
 
   @ApiPropertyOptional({
@@ -27,7 +27,7 @@ export class CreateDeviceDetailsDto {
     description: "Qurilmaning ishlab chiqarilgan yili.",
   })
   @IsOptional()
-  @IsInt({ message: "year butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "year butun son (integer) bolishi kerak" })
   year?: number;
 
   @ApiPropertyOptional({
@@ -35,7 +35,7 @@ export class CreateDeviceDetailsDto {
     description: "Qurilmaning protsessori (CPU) nomi.",
   })
   @IsOptional()
-  @IsString({ message: "cpu matn (string) bo‘lishi kerak" })
+  @IsString({ message: "cpu matn (string) bolishi kerak" })
   cpu?: string;
 
   @ApiPropertyOptional({
@@ -43,7 +43,7 @@ export class CreateDeviceDetailsDto {
     description: "Operativ xotira (RAM) hajmi.",
   })
   @IsOptional()
-  @IsString({ message: "ram matn (string) bo‘lishi kerak" })
+  @IsString({ message: "ram matn (string) bolishi kerak" })
   ram?: string;
 
   @ApiPropertyOptional({
@@ -51,7 +51,7 @@ export class CreateDeviceDetailsDto {
     description: "Doimiy xotira (Storage) hajmi.",
   })
   @IsOptional()
-  @IsString({ message: "storage matn (string) bo‘lishi kerak" })
+  @IsString({ message: "storage matn (string) bolishi kerak" })
   storage?: string;
 
   @ApiPropertyOptional({
@@ -59,15 +59,15 @@ export class CreateDeviceDetailsDto {
     description: "Ekran hajmi va turi (masalan, 6.7 inch AMOLED).",
   })
   @IsOptional()
-  @IsString({ message: "display_size matn (string) bo‘lishi kerak" })
+  @IsString({ message: "display_size matn (string) bolishi kerak" })
   display_size?: string;
 
   @ApiPropertyOptional({
     example: "94%",
-    description: "Batareya holati (Battery Health), foiz ko‘rinishida.",
+    description: "Batareya holati (Battery Health), foiz korinishida.",
   })
   @IsOptional()
-  @IsString({ message: "battery_health matn (string) bo‘lishi kerak" })
+  @IsString({ message: "battery_health matn (string) bolishi kerak" })
   battery_health?: string;
 
   @ApiPropertyOptional({
@@ -75,7 +75,7 @@ export class CreateDeviceDetailsDto {
     description: "Qurilma haqida umumiy tavsif yoki izoh.",
   })
   @IsOptional()
-  @IsString({ message: "description matn (string) bo‘lishi kerak" })
+  @IsString({ message: "description matn (string) bolishi kerak" })
   description?: string;
 }
 
@@ -84,7 +84,7 @@ export class CreateDeviceDto {
     example: "iPhone 15 Pro Max",
     description: "Qurilma nomi (modeli).",
   })
-  @IsString({ message: "name matn (string) bo‘lishi kerak" })
+  @IsString({ message: "name matn (string) bolishi kerak" })
   name: string;
 
   @ApiProperty({
@@ -93,7 +93,7 @@ export class CreateDeviceDto {
     example: DeviceType.iphone,
   })
   @IsEnum(DeviceType, {
-    message: "type faqat DeviceType enum qiymatlaridan biri bo‘lishi kerak",
+    message: "type faqat DeviceType enum qiymatlaridan biri bolishi kerak",
   })
   type: DeviceType;
 
@@ -105,29 +105,29 @@ export class CreateDeviceDto {
   })
   @IsOptional()
   @IsEnum(SaleType, {
-    message: "sale_type faqat SaleType enum qiymatlaridan biri bo‘lishi kerak",
+    message: "sale_type faqat SaleType enum qiymatlaridan biri bolishi kerak",
   })
   sale_type: SaleType = SaleType.website_sold;
 
   @ApiPropertyOptional({
     example: 12,
-    description: "Sotuvchi foydalanuvchining ID raqami (agar mavjud bo‘lsa).",
+    description: "Sotuvchi foydalanuvchining ID raqami (agar mavjud bolsa).",
   })
   @IsOptional()
-  @IsInt({ message: "seller_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "seller_id butun son (integer) bolishi kerak" })
   @IsPositive({
-    message: "seller_id musbat son (positive integer) bo‘lishi kerak",
+    message: "seller_id musbat son (positive integer) bolishi kerak",
   })
   seller_id?: number;
 
   @ApiPropertyOptional({
     example: 5,
-    description: "Hudud (region) ID raqami (agar mavjud bo‘lsa).",
+    description: "Hudud (region) ID raqami (agar mavjud bolsa).",
   })
   @IsOptional()
-  @IsInt({ message: "region_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "region_id butun son (integer) bolishi kerak" })
   @IsPositive({
-    message: "region_id musbat son (positive integer) bo‘lishi kerak",
+    message: "region_id musbat son (positive integer) bolishi kerak",
   })
   region_id?: number;
 
@@ -138,7 +138,7 @@ export class CreateDeviceDto {
   })
   @IsDecimal(
     {},
-    { message: "base_price haqiqiy (decimal) raqam bo‘lishi kerak" }
+    { message: "base_price haqiqiy (decimal) raqam bolishi kerak" }
   )
   base_price: any;
 
@@ -149,7 +149,7 @@ export class CreateDeviceDto {
   })
   @IsOptional()
   @IsBoolean({
-    message: "is_active boolean (true yoki false) qiymat bo‘lishi kerak",
+    message: "is_active boolean (true yoki false) qiymat bolishi kerak",
   })
   is_active?: boolean = true;
 

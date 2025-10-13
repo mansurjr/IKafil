@@ -15,21 +15,21 @@ export class CreateUserDto {
     example: "qobiljon_99",
     description: "Foydalanuvchining foydalanuvchi nomi (unique username)",
   })
-  @IsString({ message: "Username matn bo‘lishi kerak" })
+  @IsString({ message: "Username matn bolishi kerak" })
   username: string;
 
   @ApiProperty({
     example: "Qobiljon Yuldashev",
-    description: "Foydalanuvchining to‘liq ismi",
+    description: "Foydalanuvchining toliq ismi",
   })
-  @IsString({ message: "To‘liq ism matn bo‘lishi kerak" })
+  @IsString({ message: "Toliq ism matn bolishi kerak" })
   full_name: string;
 
   @ApiProperty({
     example: "qobiljon@example.com",
     description: "Foydalanuvchining elektron pochtasi",
   })
-  @IsEmail({}, { message: "Email manzili noto‘g‘ri formatda kiritilgan" })
+  @IsEmail({}, { message: "Email manzili notogri formatda kiritilgan" })
   email: string;
 
   @ApiProperty({
@@ -38,7 +38,7 @@ export class CreateUserDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: "Telefon raqami matn bo‘lishi kerak" })
+  @IsString({ message: "Telefon raqami matn bolishi kerak" })
   phone?: string;
 
   @ApiProperty({
@@ -46,18 +46,18 @@ export class CreateUserDto {
     description: "Foydalanuvchi paroli (kamida 6 ta belgi)",
     minLength: 6,
   })
-  @IsString({ message: "Parol matn bo‘lishi kerak" })
-  @MinLength(6, { message: "Parol kamida 6 ta belgidan iborat bo‘lishi kerak" })
+  @IsString({ message: "Parol matn bolishi kerak" })
+  @MinLength(6, { message: "Parol kamida 6 ta belgidan iborat bolishi kerak" })
   password: string;
 
   @ApiProperty({
     example: "myStrongPassword123",
-    description: "Parolni tasdiqlash (password bilan bir xil bo‘lishi kerak)",
+    description: "Parolni tasdiqlash (password bilan bir xil bolishi kerak)",
     minLength: 6,
   })
-  @IsString({ message: "Tasdiqlovchi parol matn bo‘lishi kerak" })
+  @IsString({ message: "Tasdiqlovchi parol matn bolishi kerak" })
   @MinLength(6, {
-    message: "Tasdiqlovchi parol kamida 6 ta belgidan iborat bo‘lishi kerak",
+    message: "Tasdiqlovchi parol kamida 6 ta belgidan iborat bolishi kerak",
   })
   confirmPassword: string;
 
@@ -68,14 +68,14 @@ export class CreateUserDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(UserRole, { message: "Noto‘g‘ri foydalanuvchi roli tanlangan" })
+  @IsEnum(UserRole, { message: "Notogri foydalanuvchi roli tanlangan" })
   role?: UserRole;
 
   @ApiProperty({
     example: 1,
     description: "Foydalanuvchining tegishli hududi (region ID)",
   })
-  @IsInt({ message: "Region ID butun son bo‘lishi kerak" })
-  @IsPositive({ message: "Region ID musbat son bo‘lishi kerak" })
+  @IsInt({ message: "Region ID butun son bolishi kerak" })
+  @IsPositive({ message: "Region ID musbat son bolishi kerak" })
   region_id: number;
 }

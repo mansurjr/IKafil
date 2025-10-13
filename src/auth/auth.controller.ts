@@ -26,22 +26,22 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 
-@ApiTags("Authentication") // Swaggerda bo‘lim nomi
+@ApiTags("Authentication") // Swaggerda bolim nomi
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /** ---------------- REGISTER ---------------- */
   @Post("register")
-  @ApiOperation({ summary: "Yangi foydalanuvchini ro‘yxatdan o‘tkazish" })
+  @ApiOperation({ summary: "Yangi foydalanuvchini royxatdan otkazish" })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({
     status: 201,
-    description: "Foydalanuvchi muvaffaqiyatli ro‘yxatdan o‘tdi",
+    description: "Foydalanuvchi muvaffaqiyatli royxatdan otdi",
   })
   @ApiResponse({
     status: 400,
-    description: "Noto‘g‘ri ma'lumot kiritilgan yoki foydalanuvchi mavjud",
+    description: "Notogri ma'lumot kiritilgan yoki foydalanuvchi mavjud",
   })
   async register(@Body() dto: CreateUserDto) {
     return this.authService.register(dto);
@@ -55,7 +55,7 @@ export class AuthController {
     status: 200,
     description: "Kirish muvaffaqiyatli amalga oshirildi",
   })
-  @ApiResponse({ status: 401, description: "Login yoki parol noto‘g‘ri" })
+  @ApiResponse({ status: 401, description: "Login yoki parol notogri" })
   async signIn(
     @Body() dto: SignInDto,
     @Res({ passthrough: true }) res: Response
@@ -88,7 +88,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "OTP muvaffaqiyatli tasdiqlandi" })
   @ApiResponse({
     status: 400,
-    description: "OTP noto‘g‘ri yoki muddati o‘tgan",
+    description: "OTP notogri yoki muddati otgan",
   })
   async verifyOtp(
     @Body() body: { email: string; otp: string },
@@ -116,7 +116,7 @@ export class AuthController {
 
   /** ---------------- RESET PASSWORD ---------------- */
   @Post("reset-password")
-  @ApiOperation({ summary: "Yangi parolni o‘rnatish (reset password)" })
+  @ApiOperation({ summary: "Yangi parolni ornatish (reset password)" })
   @ApiBody({
     schema: {
       example: {
@@ -128,11 +128,11 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: "Parol muvaffaqiyatli o‘zgartirildi",
+    description: "Parol muvaffaqiyatli ozgartirildi",
   })
   @ApiResponse({
     status: 400,
-    description: "Token noto‘g‘ri yoki parollar mos emas",
+    description: "Token notogri yoki parollar mos emas",
   })
   async resetPassword(
     @Body() body: { token: string; password: string; confirmPassword: string }
@@ -152,7 +152,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "Yangi tokenlar qaytarildi" })
   @ApiResponse({
     status: 401,
-    description: "Refresh token noto‘g‘ri yoki muddati o‘tgan",
+    description: "Refresh token notogri yoki muddati otgan",
   })
   async refresh(
     @Res({ passthrough: true }) res: Response,
@@ -185,7 +185,7 @@ export class AuthController {
     status: 200,
     description: "Foydalanuvchi ma'lumotlari qaytarildi",
   })
-  @ApiResponse({ status: 401, description: "Token noto‘g‘ri yoki mavjud emas" })
+  @ApiResponse({ status: 401, description: "Token notogri yoki mavjud emas" })
   async me(@GetUser("id") userId: number) {
     return this.authService.me(userId);
   }
@@ -204,7 +204,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 400,
-    description: "Aktivatsiya havolasi noto‘g‘ri yoki muddati o‘tgan",
+    description: "Aktivatsiya havolasi notogri yoki muddati otgan",
   })
   async activate(@Param("link") activationLink: string) {
     return this.authService.activate(activationLink);
