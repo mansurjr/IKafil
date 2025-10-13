@@ -21,6 +21,7 @@ import { MailModule } from './mail/mail.module';
 import { BotModule } from './bot/bot.module';
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+import { PaymentScheduleModule } from './payment-schedule/payment-schedule.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { join } from "path";
     JwtModule,
     MailModule,
     BotModule,
+    PaymentScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
