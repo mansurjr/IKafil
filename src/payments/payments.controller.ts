@@ -7,6 +7,8 @@ import {
   Body,
   Query,
   ParseIntPipe,
+  UseGuards,
+  ForbiddenException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -15,47 +17,124 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { PaymentsService } from "./payments.service";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
 import { PaymentStatus } from "@prisma/client";
 import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
+import { Roles } from "../common/decorators/roles";
+import { RolesGuard } from "../common/guards/role.guard";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 
 @ApiTags("Payments")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("payments")
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // =============================================
+  // 1️⃣ Tolovni qayd etish (foydalanuvchi)
+  // =============================================
   @Post()
-  @ApiOperation({ summary: "Create a new payment" })
+  @ApiOperation({ summary: "Kontrakt boyicha tolovni amalga oshirish" })
   @ApiBody({ type: CreatePaymentDto })
   @ApiResponse({
     status: 201,
-    description: "Payment created successfully",
+    description: "Tolov muvaffaqiyatli amalga oshirildi",
   })
-  async create(@Body() dto: CreatePaymentDto) {
-    return this.paymentsService.create(dto);
+  async createPayment(
+    @Body() dto: CreatePaymentDto,
+    @GetCurrentUser() buyerId: number
+  ) {
+    if (!buyerId) throw new ForbiddenException("Foydalanuvchi aniqlanmadi");
+    return this.paymentsService.create(dto, buyerId);
   }
 
+  // =============================================
+  // 2️⃣ Foydalanuvchi tolovlarini kuzatish
+  // =============================================
+  @Get("contract/:contract_id")
+  @ApiOperation({
+    summary: "Foydalanuvchi kontrakti boyicha tolov jadvali va tarixini olish",
+  })
+  @ApiParam({ name: "contract_id", type: Number, example: 1 })
+  async getContractPayments(
+    @Param("contract_id", ParseIntPipe) contract_id: number,
+    @GetCurrentUser() buyerId: number
+  ) {
+    return this.paymentsService.getContractPayments(contract_id, buyerId);
+  }
+
+  // =============================================
+  // 3️⃣ Foydalanuvchi tolovlarini status boyicha olish
+  // =============================================
+  @Get("own")
+  @ApiOperation({
+    summary: "Foydalanuvchining tolovlarini status boyicha olish",
+  })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    enum: PaymentStatus,
+    description: "Tolov holati boyicha filtrlash (pending, paid, late...)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Foydalanuvchi tolovlari muvaffaqiyatli qaytarildi",
+  })
+  async getUserPaymentsByStatus(
+    @Query("status") status: PaymentStatus,
+    @GetCurrentUser() buyerId: number
+  ) {
+    if (!buyerId) throw new ForbiddenException("Foydalanuvchi aniqlanmadi");
+    return this.paymentsService.getByBuyerIdAndStatus(buyerId, status);
+  }
+
+  // =============================================
+  // 4️⃣ Admin — barcha tolovlarni olish
+  // =============================================
+  @Get()
+  @Roles("admin")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "Admin — barcha tolovlarni olish" })
+  async findAll() {
+    return this.paymentsService.findAll();
+  }
+
+  // =============================================
+  // 5️⃣ Admin — tolovni tasdiqlash
+  // =============================================
   @Patch(":id/confirm")
-  @ApiOperation({ summary: "Confirm a payment by ID" })
+  @Roles("admin")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "Admin — tolovni tasdiqlash (status = paid)" })
   @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiResponse({
     status: 200,
-    description: "Payment confirmed successfully",
+    description: "Tolov muvaffaqiyatli tasdiqlandi",
   })
   async confirmPayment(@Param("id", ParseIntPipe) id: number) {
-    return this.paymentsService.confirmPayment(id);
+    return this.paymentsService.confirm(id);
   }
 
+  // =============================================
+  // 6️⃣ Admin — tolovni rad etish
+  // =============================================
   @Patch(":id/reject")
-  @ApiOperation({ summary: "Reject a payment by ID" })
+  @Roles("admin")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "Admin — tolovni rad etish (status = rejected)" })
   @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
-        reason: { type: "string", example: "Invalid transaction" },
+        reason: {
+          type: "string",
+          example: "Notogri tolov summasi yoki kontrakt raqami",
+        },
       },
     },
   })
@@ -63,40 +142,6 @@ export class PaymentsController {
     @Param("id", ParseIntPipe) id: number,
     @Body("reason") reason?: string
   ) {
-    return this.paymentsService.rejectPayment(id, reason);
-  }
-
-  @Get("contract/:contract_id")
-  @ApiOperation({ summary: "Get all payments for a specific contract" })
-  @ApiParam({ name: "contract_id", type: Number, example: 1 })
-  async getPaymentsByContract(
-    @Param("contract_id", ParseIntPipe) contract_id: number
-  ) {
-    return this.paymentsService.getPaymentsByContract(contract_id);
-  }
-
-  @Get("own")
-  @ApiOperation({ summary: "Get user payments by status" })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    enum: PaymentStatus,
-    description: "Filter payments by status (e.g. PENDING, COMPLETED, FAILED)",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "List of user payments returned successfully",
-  })
-  getByBuyerIdAndStatus(
-    @Query("status") status: PaymentStatus,
-    @GetCurrentUser() id: number
-  ) {
-    return this.paymentsService.getByBuyerIdAndStatus(id, status);
-  }
-
-  @Get()
-  @ApiOperation({ summary: "Get all payments" })
-  async findAll() {
-    return this.paymentsService.findAll();
+    return this.paymentsService.reject(id, reason);
   }
 }

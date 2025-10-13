@@ -6,12 +6,12 @@ export class CreateDeviceImageDto {
   @ApiProperty({
     example: 1,
     description:
-      "Rasm tegishli bo‘lgan qurilmaning ID raqami (`devices` jadvalidan olinadi).",
+      "Rasm tegishli bolgan qurilmaning ID raqami (`devices` jadvalidan olinadi).",
   })
   @Type(() => Number)
-  @IsNumber({}, { message: "device_id raqam (number) bo‘lishi kerak" })
+  @IsNumber({}, { message: "device_id raqam (number) bolishi kerak" })
   @IsPositive({
-    message: "device_id musbat son (positive number) bo‘lishi kerak",
+    message: "device_id musbat son (positive number) bolishi kerak",
   })
   device_id: number;
 
@@ -23,7 +23,7 @@ export class CreateDeviceImageDto {
   @IsOptional()
   @Transform(({ value }) => value === "true" || value === true)
   @IsBoolean({
-    message: "is_primary faqat boolean (true yoki false) qiymat bo‘lishi kerak",
+    message: "is_primary faqat boolean (true yoki false) qiymat bolishi kerak",
   })
   is_primary?: boolean;
 }

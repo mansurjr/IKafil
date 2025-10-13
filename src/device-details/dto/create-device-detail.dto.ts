@@ -7,7 +7,7 @@ export class CreateDeviceDetailDto {
     description: "Qurilmaning rangi (masalan, Space Gray, Silver, Gold).",
   })
   @IsOptional()
-  @IsString({ message: "color matn (string) bo‘lishi kerak" })
+  @IsString({ message: "color matn (string) bolishi kerak" })
   color?: string;
 
   @ApiPropertyOptional({
@@ -15,7 +15,7 @@ export class CreateDeviceDetailDto {
     description: "Qurilmaning ishlab chiqarilgan yili.",
   })
   @IsOptional()
-  @IsNumber({}, { message: "year raqam (number) bo‘lishi kerak" })
+  @IsNumber({}, { message: "year raqam (number) bolishi kerak" })
   year?: number;
 
   @ApiPropertyOptional({
@@ -23,7 +23,7 @@ export class CreateDeviceDetailDto {
     description: "Qurilmada ishlatilgan markaziy protsessor (CPU) nomi.",
   })
   @IsOptional()
-  @IsString({ message: "cpu matn (string) bo‘lishi kerak" })
+  @IsString({ message: "cpu matn (string) bolishi kerak" })
   cpu?: string;
 
   @ApiPropertyOptional({
@@ -31,7 +31,7 @@ export class CreateDeviceDetailDto {
     description: "Operativ xotira (RAM) hajmi.",
   })
   @IsOptional()
-  @IsString({ message: "ram matn (string) bo‘lishi kerak" })
+  @IsString({ message: "ram matn (string) bolishi kerak" })
   ram?: string;
 
   @ApiPropertyOptional({
@@ -39,7 +39,7 @@ export class CreateDeviceDetailDto {
     description: "Doimiy xotira (Storage) hajmi.",
   })
   @IsOptional()
-  @IsString({ message: "storage matn (string) bo‘lishi kerak" })
+  @IsString({ message: "storage matn (string) bolishi kerak" })
   storage?: string;
 
   @ApiPropertyOptional({
@@ -47,22 +47,22 @@ export class CreateDeviceDetailDto {
     description: "Ekran hajmi va turi (masalan, 6.1 inch OLED).",
   })
   @IsOptional()
-  @IsString({ message: "display_size matn (string) bo‘lishi kerak" })
+  @IsString({ message: "display_size matn (string) bolishi kerak" })
   display_size?: string;
 
   @ApiPropertyOptional({
     example: "95%",
-    description: "Batareya sog‘lomligi (Battery Health). Foizda ifodalanadi.",
+    description: "Batareya soglomligi (Battery Health). Foizda ifodalanadi.",
   })
   @IsOptional()
-  @IsString({ message: "battery_health matn (string) bo‘lishi kerak" })
+  @IsString({ message: "battery_health matn (string) bolishi kerak" })
   battery_health?: string;
 
   @ApiPropertyOptional({
-    example: "Hech qanday nuqsoni yo‘q, holati a’lo.",
+    example: "Hech qanday nuqsoni yoq, holati a’lo.",
     description: "Qurilma haqida umumiy tavsif yoki izoh.",
   })
   @IsOptional()
-  @IsString({ message: "description matn (string) bo‘lishi kerak" })
+  @IsString({ message: "description matn (string) bolishi kerak" })
   description?: string;
 }

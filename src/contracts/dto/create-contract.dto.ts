@@ -16,15 +16,15 @@ export class CreateContractDto {
     description:
       "Xaridor (buyer) foydalanuvchining ID raqami. Bu qiymat `users` jadvalidan olinadi.",
   })
-  @IsInt({ message: "buyer_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "buyer_id butun son (integer) bolishi kerak" })
   buyer_id: number;
 
   @ApiProperty({
     example: 5,
     description:
-      "Shartnoma bog‘lanadigan qurilmaning ID raqami (`devices` jadvalidan).",
+      "Shartnoma boglanadigan qurilmaning ID raqami (`devices` jadvalidan).",
   })
-  @IsInt({ message: "device_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "device_id butun son (integer) bolishi kerak" })
   device_id: number;
 
   @ApiProperty({
@@ -33,58 +33,58 @@ export class CreateContractDto {
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: "admin_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "admin_id butun son (integer) bolishi kerak" })
   admin_id?: number;
 
   @ApiProperty({
     example: 3,
     description:
-      "To‘lov rejasining (installment plan) ID raqami, agar mavjud bo‘lsa.",
+      "Tolov rejasining (installment plan) ID raqami, agar mavjud bolsa.",
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: "plan_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "plan_id butun son (integer) bolishi kerak" })
   plan_id?: number;
 
   @ApiProperty({
     example: 4,
     description:
-      "Trade-in so‘rovi ID raqami, agar shartnoma trade-in orqali tuzilgan bo‘lsa.",
+      "Trade-in sorovi ID raqami, agar shartnoma trade-in orqali tuzilgan bolsa.",
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: "trade_in_id butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "trade_in_id butun son (integer) bolishi kerak" })
   trade_in_id?: number;
 
   @ApiProperty({
     example: 1200.5,
-    description: "Shartnoma bo‘yicha jami to‘lov summasi (USD yoki so‘mda).",
+    description: "Shartnoma boyicha jami tolov summasi (USD yoki somda).",
   })
   @Type(() => Number)
-  @IsNumber({}, { message: "total_price raqam (number) bo‘lishi kerak" })
+  @IsNumber({}, { message: "total_price raqam (number) bolishi kerak" })
   total_price: number;
 
   @ApiProperty({
     example: 100.42,
-    description: "Har oylik to‘lov miqdori.",
+    description: "Har oylik tolov miqdori.",
   })
   @Type(() => Number)
-  @IsNumber({}, { message: "monthly_payment raqam (number) bo‘lishi kerak" })
+  @IsNumber({}, { message: "monthly_payment raqam (number) bolishi kerak" })
   monthly_payment: number;
 
   @ApiProperty({
     example: 800.25,
-    description: "To‘lanmagan (qolgan) summa.",
+    description: "Tolanmagan (qolgan) summa.",
   })
   @Type(() => Number)
-  @IsNumber({}, { message: "remaining_balance raqam (number) bo‘lishi kerak" })
+  @IsNumber({}, { message: "remaining_balance raqam (number) bolishi kerak" })
   remaining_balance: number;
 
   @ApiProperty({
     example: 12,
     description: "Shartnomaning davomiyligi (oylarda).",
   })
-  @IsInt({ message: "duration_months butun son (integer) bo‘lishi kerak" })
+  @IsInt({ message: "duration_months butun son (integer) bolishi kerak" })
   duration_months: number;
 
   @ApiProperty({
@@ -95,7 +95,7 @@ export class CreateContractDto {
   })
   @IsOptional()
   @IsEnum(ContractStatus, {
-    message: "status ContractStatus enum qiymatlaridan biri bo‘lishi kerak",
+    message: "status ContractStatus enum qiymatlaridan biri bolishi kerak",
   })
   status?: ContractStatus;
 
@@ -107,7 +107,7 @@ export class CreateContractDto {
   @IsOptional()
   @IsDateString(
     {},
-    { message: "start_date to‘g‘ri sana formatida (ISO) bo‘lishi kerak" }
+    { message: "start_date togri sana formatida (ISO) bolishi kerak" }
   )
   start_date?: Date;
 
@@ -119,19 +119,19 @@ export class CreateContractDto {
   @IsOptional()
   @IsDateString(
     {},
-    { message: "end_date to‘g‘ri sana formatida (ISO) bo‘lishi kerak" }
+    { message: "end_date togri sana formatida (ISO) bolishi kerak" }
   )
   end_date?: Date;
 
   @ApiProperty({
     example: false,
     description:
-      "Agar shartnoma trade-in asosida tuzilgan bo‘lsa — `true`, aks holda `false`.",
+      "Agar shartnoma trade-in asosida tuzilgan bolsa — `true`, aks holda `false`.",
     required: false,
   })
   @IsOptional()
   @IsBoolean({
-    message: "is_trade_in boolean (true yoki false) qiymat bo‘lishi kerak",
+    message: "is_trade_in boolean (true yoki false) qiymat bolishi kerak",
   })
   is_trade_in?: boolean;
 }
