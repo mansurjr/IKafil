@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { ContractsService } from "./contracts.service";
 import { CreateContractDto } from "./dto/create-contract.dto";
@@ -28,8 +29,8 @@ export class ContractsController {
   @ApiParam({ name: "id", type: Number })
   @ApiResponse({ status: 200, description: "Contract found." })
   @ApiResponse({ status: 404, description: "Contract not found." })
-  contractVerify(@Param("id") id: string) {
-    return this.contractsService.findOne(+id);
+  contractVerify(@Param("id", ParseIntPipe) id: number) {
+    return this.contractsService.findOne(id);
   }
 
   // @Post()
@@ -53,8 +54,8 @@ export class ContractsController {
   @ApiParam({ name: "id", type: Number })
   @ApiResponse({ status: 200, description: "Contract found." })
   @ApiResponse({ status: 404, description: "Contract not found." })
-  findOne(@Param("id") id: string) {
-    return this.contractsService.findOne(+id);
+  findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.contractsService.findOne(id);
   }
 
   @Patch(":id")
@@ -64,10 +65,10 @@ export class ContractsController {
   @ApiResponse({ status: 200, description: "Contract successfully updated." })
   @ApiResponse({ status: 404, description: "Contract not found." })
   update(
-    @Param("id") id: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() updateContractDto: UpdateContractDto
   ) {
-    return this.contractsService.update(+id, updateContractDto);
+    return this.contractsService.update(id, updateContractDto);
   }
 
   @Delete(":id")
@@ -75,9 +76,7 @@ export class ContractsController {
   @ApiParam({ name: "id", type: Number })
   @ApiResponse({ status: 200, description: "Contract deleted successfully." })
   @ApiResponse({ status: 404, description: "Contract not found." })
-  remove(@Param("id") id: string) {
-    return this.contractsService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.contractsService.remove(id);
   }
-
-  
 }
