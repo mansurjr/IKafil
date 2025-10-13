@@ -29,7 +29,6 @@ enum SaleType {
 enum ContractStatus {
   active
   completed
-  defaulted
   cancelled
 }
 
@@ -44,6 +43,11 @@ enum PaymentStatus {
   paid
   late
   failed
+}
+
+enum DeviceSaleStatus {
+  available
+  sold
 }
 
 model region {
@@ -75,11 +79,11 @@ model users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
-  region          region?             @relation(fields: [region_id], references: [id])
-  devices         devices[]           @relation("UserDevices")
+  region          region?         @relation(fields: [region_id], references: [id])
+  devices         devices[]       @relation("UserDevices")
   carts           carts[]
-  contracts_buyer contracts[]         @relation("BuyerContracts")
-  contracts_admin contracts[]         @relation("AdminContracts")
+  contracts_buyer contracts[]     @relation("BuyerContracts")
+  contracts_admin contracts[]     @relation("AdminContracts")
   notifications   notifications[]
 }
 
@@ -111,17 +115,18 @@ model device_details {
 }
 
 model devices {
-  id         Int          @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   name       String
   type       DeviceType
-  sale_type  SaleType     @default(website_sold)
-  isTradible Boolean?     @default(false)
+  sale_type  SaleType          @default(website_sold)
+  isTradible Boolean?          @default(false)
   seller_id  Int?
   region_id  Int?
   base_price Decimal
-  is_active  Boolean?     @default(true)
-  created_at DateTime?    @default(now())
-  updated_at DateTime?    @updatedAt
+  status     DeviceSaleStatus? @default(available)
+  is_active  Boolean?          @default(true)
+  created_at DateTime?         @default(now())
+  updated_at DateTime?         @updatedAt
 
   seller        users?          @relation("UserDevices", fields: [seller_id], references: [id])
   region        region?         @relation(fields: [region_id], references: [id])

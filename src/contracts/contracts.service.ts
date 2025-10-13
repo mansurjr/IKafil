@@ -53,14 +53,14 @@ export class ContractsService {
     const months = Number(plan.months);
     const percent = Number(plan.percent);
     let initial_payment = 0;
-    let total_price = base_price
+    let total_price = base_price;
 
     // 🧮 Hisoblash formulalari
     if (!dto.is_trade_in) {
       total_price = base_price * (1 + percent / 100);
       initial_payment = total_price / (months + 1);
     }
-    
+
     const monthly_payment = total_price / months;
     const remaining_balance = total_price - initial_payment;
 
@@ -181,15 +181,6 @@ export class ContractsService {
       where: { id },
       data: {
         ...dto,
-        updated_at: new Date(),
-      },
-      include: {
-        buyer: true,
-        device: true,
-        admin: true,
-        plan: true,
-        payment_schedule: true,
-        payments: true,
       },
     });
   }

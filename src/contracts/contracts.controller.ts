@@ -33,14 +33,14 @@ export class ContractsController {
     return this.contractsService.findOne(id);
   }
 
-  // @Post()
-  // @ApiOperation({ summary: "Create a new contract" })
-  // @ApiBody({ type: CreateContractDto })
-  // @ApiResponse({ status: 201, description: "Contract successfully created." })
-  // @ApiResponse({ status: 400, description: "Validation error." })
-  // create(@Body() createContractDto: CreateContractDto) {
-  //   return this.contractsService.create(createContractDto);
-  // }
+  @Post()
+  @ApiOperation({ summary: "Create a new contract" })
+  @ApiBody({ type: CreateContractDto })
+  @ApiResponse({ status: 201, description: "Contract successfully created." })
+  @ApiResponse({ status: 400, description: "Validation error." })
+  create(@Body() createContractDto: CreateContractDto) {
+    return this.contractsService.create(createContractDto);
+  }
 
   @Get()
   @ApiOperation({ summary: "Get all contracts" })

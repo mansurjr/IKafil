@@ -1,6 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { ValidationPipe, Logger } from "@nestjs/common";
+import { ValidationPipe, Logger, BadRequestException } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import  cookieParser from "cookie-parser";
 
@@ -13,22 +13,25 @@ async function bootstrap() {
 
  app.useGlobalPipes(
    new ValidationPipe({
-     whitelist: true, 
+     whitelist: true,
      forbidNonWhitelisted: true,
      forbidUnknownValues: false,
      transform: true,
-     stopAtFirstError: false, 
+     stopAtFirstError: false,
      exceptionFactory: (errors) => {
-       return {
+       const formattedErrors = errors.map((err) => ({
+         field: err.property,
+         errors: Object.values(err.constraints || {}),
+       }));
+
+       return new BadRequestException({
          message: "Validation failed",
-         errors: errors.map((err) => ({
-           field: err.property,
-           errors: Object.values(err.constraints || {}),
-         })),
-       };
+         errors: formattedErrors,
+       });
      },
    })
  );
+
   const config = new DocumentBuilder()
     .setTitle("Your Project API")
     .setDescription("API documentation for your project")

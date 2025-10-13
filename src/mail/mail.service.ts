@@ -96,4 +96,25 @@ export class MailService {
     `,
     });
   }
+  async sendNewCredentialsMail(user: User, newPassword: string): Promise<void> {
+    const mailOptions = {
+      from: this.configService.get<string>("SMTP_FROM"),
+      to: user.email!,
+      subject: "Your New Login Credentials - IKafil",
+      html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2>Hello ${user.full_name}!</h2>
+        <p>Your account credentials have been updated. Please use the information below to log in:</p>
+        <ul>
+          <li><strong>Username:</strong> ${user.username}</li>
+          <li><strong>New Password:</strong> ${newPassword}</li>
+        </ul>
+        <p>We recommend changing this password after logging in for security purposes.</p>
+        <p style="margin-top: 20px;">If you did not request this change, please contact our support immediately.</p>
+      </div>
+    `,
+    };
+
+    await this.send(mailOptions);
+  }
 }

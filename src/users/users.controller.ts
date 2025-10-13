@@ -46,7 +46,19 @@ export class UsersController {
     description: "Invalid data or duplicate email/phone.",
   })
   async create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
+    const user = await this.usersService.createUser(createUserDto);
+    const {
+      password,
+      token,
+      activation_link,
+      otp_code,
+      otp_expire,
+      resetLink,
+      region_id,
+      ...safeUser
+    } = user;
+
+    return safeUser;
   }
 
   /** =======================

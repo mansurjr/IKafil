@@ -79,7 +79,6 @@ export class PaymentsService {
           });
 
         let updatedSchedule: payment_schedule | null = null;
-
         if (nextSchedule) {
           const prevPaid = Number(nextSchedule.paid_amount ?? 0);
           const amountDue = Number(nextSchedule.amount_due);
@@ -93,23 +92,36 @@ export class PaymentsService {
                 newPaid >= amountDue
                   ? PaymentStatus.paid
                   : PaymentStatus.pending,
-              amount_due: amountDue - newPaid,
+              amount_due: Math.max(0, amountDue - newPaid),
             },
           });
         }
 
-        await tx.contracts.update({
+        const updatedContract = await tx.contracts.update({
           where: { id: contract.id },
           data: { remaining_balance: newRemaining.toFixed(2) },
         });
 
-        return { updatedPayment, updatedSchedule, newRemaining };
+        if (newRemaining <= 0) {
+          const pendingSchedules = await tx.payment_schedule.count({
+            where: { contract_id: contract.id, status: PaymentStatus.pending },
+          });
+
+          if (pendingSchedules === 0) {
+            await tx.contracts.update({
+              where: { id: contract.id },
+              data: { status: "completed" },
+            });
+          }
+        }
+
+        return { updatedPayment, updatedSchedule, updatedContract };
       });
 
       return {
         message: "Payment confirmed and contract balance updated",
         paymentId,
-        newRemaining: updated.newRemaining,
+        newRemaining: updated.updatedContract.remaining_balance,
         updatedSchedule: updated.updatedSchedule,
       };
     }
