@@ -42,7 +42,7 @@ export class UsersService {
         password: hashedPassword,
         role: dto.role || "buyer",
         activation_link: activationLink || null,
-        region_id: dto.region_id || null,
+        region_id: dto.region_id,
       },
     });
 

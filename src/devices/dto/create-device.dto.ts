@@ -10,7 +10,7 @@ import {
   IsPositive,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { DeviceType, SaleType, DeviceStatus } from "@prisma/client";
+import { DeviceType, SaleType } from "@prisma/client";
 
 export class CreateDeviceDetailsDto {
   @IsOptional()
@@ -56,10 +56,6 @@ export class CreateDeviceDto {
   @IsOptional()
   @IsEnum(SaleType)
   sale_type: SaleType = SaleType.website_sold;
-
-  @IsOptional()
-  @IsEnum(DeviceStatus)
-  status?: DeviceStatus = DeviceStatus.pending_approval;
 
   @IsInt()
   @IsOptional()

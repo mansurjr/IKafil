@@ -41,7 +41,6 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role?: UserRole;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
-  region_id?: number;
+  @ApiProperty({ required: true })
+  region_id: number;
 }

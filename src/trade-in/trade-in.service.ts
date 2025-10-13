@@ -7,9 +7,9 @@ import { UpdateTradeInDto } from "./dto/update-trade-in.dto";
 export class TradeInService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateTradeInDto & { seller_id: number }) {
+  async create(dto: CreateTradeInDto) {
     const [seller, oldDevice, newDevice] = await Promise.all([
-      this.prisma.users.findUnique({ where: { id: dto.seller_id } }), // ✅ to‘g‘ri seller tekshiruvi
+      this.prisma.users.findUnique({ where: { id: dto.seller_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.old_device_id } }),
       this.prisma.devices.findUnique({ where: { id: dto.new_device_id } }),
     ]);
@@ -25,7 +25,6 @@ export class TradeInService {
         new_device_id: dto.new_device_id,
         estimated_value: dto.estimated_value,
         approved: dto.approved ?? false,
-        difference_amount: dto.difference_amount ?? null,
       },
       include: {
         seller: true,

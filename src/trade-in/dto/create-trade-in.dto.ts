@@ -46,7 +46,8 @@ export class CreateTradeInDto {
     required: false,
     description: "Yangi va eski qurilmalar orasidagi farq summasi",
   })
-  @IsOptional()
-  @IsDecimal()
-  difference_amount?: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  seller_id: number;
 }

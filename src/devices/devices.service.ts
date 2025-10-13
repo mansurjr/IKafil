@@ -10,14 +10,13 @@ import { Express } from "express";
 const { v4: uuidv4 } = require("uuid");
 import { join } from "path";
 import { writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
-import { DeviceStatus, DeviceType, Prisma, SaleType } from "@prisma/client";
+import { DeviceType, Prisma, SaleType } from "@prisma/client";
 import sharp from "sharp";
 
 @Injectable()
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** 🔧 Utility: compress & save an image */
   private async compressAndSaveImage(
     file: Express.Multer.File,
     outputPath: string
@@ -33,14 +32,12 @@ export class DevicesService {
     }
   }
 
-  /** 🆕 Create device + details + images */
   async create(
     createDeviceDto: CreateDeviceDto,
     files?: Express.Multer.File[]
   ) {
     const { details, ...deviceData } = createDeviceDto;
 
-    // ✅ Validate seller requirement
     if (
       (deviceData.sale_type === SaleType.seller_sold ||
         deviceData.sale_type === SaleType.trade_in) &&
@@ -50,8 +47,10 @@ export class DevicesService {
         "seller_id is required for trade_in or seller_sold devices"
       );
     }
+    if (!deviceData.seller_id) {
+      deviceData.sale_type = SaleType.website_sold;
+    }
 
-    // ✅ Handle file uploads
     const imageData: Prisma.device_imagesCreateWithoutDeviceInput[] = [];
 
     if (files?.length) {
@@ -98,7 +97,6 @@ export class DevicesService {
     });
   }
 
-  /** 📋 Get all devices (with search + pagination) */
   async findAll(search?: string, page = 1, limit = 10) {
     const safePage = Number(page) && page > 0 ? Number(page) : 1;
     const numberLimit = Number(limit) && limit > 0 ? Number(limit) : 10;
@@ -107,7 +105,6 @@ export class DevicesService {
     const filter: Prisma.devicesWhereInput[] = [];
     const device_type = Object.values(DeviceType);
     const sale_type = Object.values(SaleType);
-    const device_status = Object.values(DeviceStatus);
 
     if (search) {
       filter.push({
@@ -123,10 +120,6 @@ export class DevicesService {
 
       if (sale_type.includes(search as SaleType)) {
         filter.push({ sale_type: { equals: search as SaleType } });
-      }
-
-      if (device_status.includes(search as DeviceStatus)) {
-        filter.push({ status: { equals: search as DeviceStatus } });
       }
     }
 
@@ -154,7 +147,6 @@ export class DevicesService {
     };
   }
 
-  /** 🔍 Get one device by ID */
   async findOne(id: number) {
     const device = await this.prisma.devices.findUnique({
       where: { id },
@@ -168,7 +160,6 @@ export class DevicesService {
     return device;
   }
 
-  /** ✏️ Update device + details + replace images */
   async update(
     id: number,
     updateDeviceDto: UpdateDeviceDto,
@@ -185,11 +176,9 @@ export class DevicesService {
     const uploadPath = join(process.cwd(), "uploads", "devices");
     const imageData: Prisma.device_imagesCreateWithoutDeviceInput[] = [];
 
-    // ✅ Delete old images if new files uploaded
     if (files?.length) {
       if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
 
-      // Remove old files
       for (const img of existing.device_images) {
         const fileName = img.url.split("/").pop();
         if (fileName) {
@@ -198,7 +187,6 @@ export class DevicesService {
         }
       }
 
-      // Add new images
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.originalname.includes(".")
@@ -247,7 +235,6 @@ export class DevicesService {
     });
   }
 
-  /** 🗑️ Delete device + images + details */
   async remove(id: number) {
     const existing = await this.prisma.devices.findUnique({
       where: { id },
@@ -256,7 +243,6 @@ export class DevicesService {
 
     if (!existing) throw new NotFoundException("Device not found");
 
-    // Delete image files
     const uploadPath = join(process.cwd(), "uploads", "devices");
     for (const img of existing.device_images) {
       const fileName = img.url.split("/").pop();
