@@ -4,7 +4,6 @@ import {
   BadRequestException,
   ForbiddenException,
   HttpException,
-  HttpStatus,
   ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
@@ -21,7 +20,7 @@ export class CartService {
       const device = await this.prisma.devices.findUnique({
         where: { id: device_id },
       });
-      if (!device) throw new NotFoundException("Qurilma topilmadi");
+      if (!device) throw new NotFoundException("Device not found");
 
       const existing = await this.prisma.carts.findUnique({
         where: {
@@ -33,7 +32,7 @@ export class CartService {
       });
 
       if (existing) {
-        throw new ConflictException("This device is already in cart");
+        throw new ConflictException("This device is already in the cart");
       }
 
       const created = await this.prisma.carts.create({
@@ -43,11 +42,11 @@ export class CartService {
         },
       });
 
-      return { message: "Qurilma savatga qo‘shildi", data: created };
+      return { message: "Device added to cart", data: created };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new BadRequestException(
-        error.message || "Savatga qo‘shishda xatolik yuz berdi"
+        error.message || "An error occurred while adding to cart"
       );
     }
   }
@@ -61,18 +60,16 @@ export class CartService {
       return carts;
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException("Cartlarni olishda xatolik yuz berdi");
+      throw new BadRequestException("Error occurred while fetching carts");
     }
   }
 
   async remove(id: number, userId: number) {
     const existing = await this.prisma.carts.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException("Cart topilmadi");
+    if (!existing) throw new NotFoundException("Cart not found");
 
     if (existing.user_id !== userId) {
-      throw new ForbiddenException(
-        "Siz faqat o‘z savat yozuvingizni o‘chirishingiz mumkin"
-      );
+      throw new ForbiddenException("You can only delete your own cart items");
     }
 
     await this.prisma.carts.delete({ where: { id } });
@@ -85,11 +82,11 @@ export class CartService {
         where: { user_id: userId },
       });
       return {
-        message: `Sizning ${deleted.count} ta savat yozuvingiz o‘chirildi`,
+        message: `Your ${deleted.count} cart item(s) have been deleted`,
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException("Cartlarni o‘chirishda xatolik yuz berdi");
+      throw new BadRequestException("Error occurred while deleting carts");
     }
   }
 }

@@ -85,10 +85,10 @@ export class TradeInService {
   }
   async approve(id: number, approved: boolean) {
     const tradeIn = await this.prisma.trade_in_requests.findUnique({
-      where: { id },
+      where: { id, approved: false },
     });
 
-    if (!tradeIn) throw new NotFoundException("Trade-in request not found");
+    if (!tradeIn) throw new NotFoundException("Trade-in request not found or already approved");
 
     return this.prisma.trade_in_requests.update({
       where: { id },
