@@ -29,7 +29,7 @@ export class AuthService {
   ) {}
 
   // ---------------- REGISTER ----------------
-  async register(dto: CreateUserDto) {
+  async register(dto: Omit<CreateUserDto, "role">) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
     if (existing) throw new BadRequestException("Email already registered");
 

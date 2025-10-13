@@ -78,11 +78,11 @@ export class AuthController {
     @GetCurrentUser("refreshToken") refreshToken: string
   ) {
     return this.authService.refresh(res, refreshToken);
-  } 
+  }
 
   /** ---------------- SIGN OUT ---------------- */
   @Get("signout")
-  @UseGuards(JwtAuthGuard, JwtRefresh)
+  @UseGuards(JwtRefresh)
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @GetCurrentUser("refreshToken") refreshToken: string

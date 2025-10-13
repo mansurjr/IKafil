@@ -13,6 +13,7 @@ import {
   ValidationPipe,
   BadRequestException,
   Query,
+  Patch,
 } from "@nestjs/common";
 import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
@@ -27,7 +28,6 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { Express } from "express";
-import { DeviceStatus } from "@prisma/client";
 
 @ApiTags("Devices")
 @Controller("devices")
@@ -72,12 +72,6 @@ export class DevicesController {
   ) {
     return this.devicesService.findAll(search, +page!, +limit!);
   }
-
-  // @ApiQuery({ name: "status", enum: DeviceStatus, required: false })
-  // @Get("filtered")
-  // async findFiltered(@Query("status") status?: DeviceStatus) {
-  //   return this.devicesService.findFilteredDevices({ status });
-  // }
 
   @Get(":id")
   @ApiOperation({ summary: "Get device by ID" })

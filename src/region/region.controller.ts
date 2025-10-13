@@ -31,12 +31,6 @@ export class RegionController {
     return this.regionService.findAll();
   }
 
-  @Get(":id")
-  @ApiOperation({ summary: "Get region by ID" })
-  findOne(@Param("id", ParseIntPipe) id: number) {
-    return this.regionService.findOne(id);
-  }
-
   @Patch(":id")
   @ApiOperation({ summary: "Update region by ID" })
   update(
