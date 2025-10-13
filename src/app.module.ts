@@ -17,10 +17,12 @@ import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
-import { MailModule } from './mail/mail.module';
-import { BotModule } from './bot/bot.module';
+import { MailModule } from "./mail/mail.module";
+import { BotModule } from "./bot/bot.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+import { JwtStrategy } from "./common/strategies/access-strategy";
+import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
 
 @Module({
   imports: [
@@ -53,6 +55,6 @@ import { join } from "path";
     BotModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, JwtStrategy, RefreshJwtStrategy],
 })
 export class AppModule {}
