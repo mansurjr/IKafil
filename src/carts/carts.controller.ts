@@ -4,20 +4,23 @@ import {
   Get,
   Delete,
   Param,
-  Req,
-  UseGuards,
-  ParseIntPipe,
-  UnauthorizedException,
   Body,
+  ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import type { Request } from "express";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { CartService } from "./carts.service";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 import { CreateCartDto } from "./dto/create-cart.dto";
 import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 
 @ApiBearerAuth()
+@ApiTags("Cart")
 @UseGuards(JwtAuthGuard)
 @Controller("cart")
 export class CartController {
@@ -29,31 +32,39 @@ export class CartController {
     status: 201,
     description: "Qurilma savatga muvaffaqiyatli qo‘shildi",
   })
-  async addToCart(@Req() req: Request, @Body() dto: CreateCartDto) {
-    const user = req.user as { id: number };
-    if (!user?.id) throw new UnauthorizedException("Avtorizatsiya topilmadi");
-    return this.cartService.addToCart(user.id, dto);
+  async addToCart(
+    @GetCurrentUser("id", ParseIntPipe) userId: number,
+    @Body() dto: CreateCartDto
+  ) {
+    return await this.cartService.addToCart(userId, dto);
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  async findAll(@GetCurrentUser("id", ParseIntPipe) id: number) {
-    return this.cartService.getCardByUserId(id);
+  @ApiOperation({ summary: "Foydalanuvchining savatini olish" })
+  @ApiResponse({ status: 200, description: "Savatdagi barcha mahsulotlar" })
+  async findAll(@GetCurrentUser("id", ParseIntPipe) userId: number) {
+    return await this.cartService.getCardByUserId(userId);
   }
 
   @Delete()
-  @UseGuards(JwtAuthGuard)
-  async BulkREmove(@GetCurrentUser("id", ParseIntPipe) id: number) {
-    return this.cartService.removeAllForUser(id);
+  @ApiOperation({
+    summary: "Foydalanuvchining barcha savat elementlarini o‘chirish",
+  })
+  @ApiResponse({ status: 200, description: "Barcha elementlar o‘chirildi" })
+  async bulkRemove(@GetCurrentUser("id", ParseIntPipe) userId: number) {
+    return await this.cartService.removeAllForUser(userId);
   }
 
   @Delete(":id")
-  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Savatdan bitta elementni o‘chirish" })
+  @ApiResponse({
+    status: 200,
+    description: "Element muvaffaqiyatli o‘chirildi",
+  })
   async remove(
-    @Req() req: Request,
     @Param("id", ParseIntPipe) id: number,
     @GetCurrentUser("id", ParseIntPipe) userId: number
   ) {
-    return this.cartService.remove(id, userId);
+    return await this.cartService.remove(id, userId);
   }
 }
