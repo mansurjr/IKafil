@@ -7,7 +7,7 @@ import {
   Param,
   UseGuards,
 } from "@nestjs/common";
-import type { Response } from "express"; 
+import type { Response } from "express";
 import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SignInDto } from "../users/dto/sign-in.dto";
@@ -16,6 +16,7 @@ import {
   GetCurrentUser,
   GetCurrentUser as GetUser,
 } from "../common/decorators/getCurrentUser";
+import { JwtRefresh } from "../common/guards/refreshToken.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -71,15 +72,17 @@ export class AuthController {
 
   /** ---------------- REFRESH TOKEN ---------------- */
   @Get("refresh")
+  @UseGuards(JwtRefresh)
   async refresh(
     @Res({ passthrough: true }) res: Response,
     @GetCurrentUser("refreshToken") refreshToken: string
   ) {
     return this.authService.refresh(res, refreshToken);
-  }
+  } 
 
   /** ---------------- SIGN OUT ---------------- */
-  @Post("signout")
+  @Get("signout")
+  @UseGuards(JwtAuthGuard, JwtRefresh)
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @GetCurrentUser("refreshToken") refreshToken: string
