@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { PrismaService } from '../prisma/prisma.service';
 

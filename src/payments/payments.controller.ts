@@ -1,14 +1,13 @@
 import {
   Controller,
   Post,
-  Get,
   Patch,
+  Get,
   Param,
   Body,
   Query,
   ParseIntPipe,
   UseGuards,
-  ForbiddenException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -16,132 +15,78 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBody,
   ApiBearerAuth,
+  ApiBody,
 } from "@nestjs/swagger";
 import { PaymentsService } from "./payments.service";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
 import { PaymentStatus } from "@prisma/client";
-import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
-import { Roles } from "../common/decorators/roles";
-import { RolesGuard } from "../common/guards/role.guard";
+import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 
 @ApiTags("Payments")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller("payments")
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  // =============================================
-  // 1️⃣ Tolovni qayd etish (foydalanuvchi)
-  // =============================================
   @Post()
-  @ApiOperation({ summary: "Kontrakt boyicha tolovni amalga oshirish" })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Create a new payment (status will be pending)" })
   @ApiBody({ type: CreatePaymentDto })
   @ApiResponse({
     status: 201,
-    description: "Tolov muvaffaqiyatli amalga oshirildi",
+    description: "Payment created and pending confirmation",
   })
-  async createPayment(
+  @ApiResponse({ status: 400, description: "Invalid amount or request" })
+  async create(
     @Body() dto: CreatePaymentDto,
-    @GetCurrentUser() buyerId: number
+    @GetCurrentUser("id") buyerId: number
   ) {
-    if (!buyerId) throw new ForbiddenException("Foydalanuvchi aniqlanmadi");
     return this.paymentsService.create(dto, buyerId);
   }
 
-  // =============================================
-  // 2️⃣ Foydalanuvchi tolovlarini kuzatish
-  // =============================================
-  @Get("contract/:contract_id")
-  @ApiOperation({
-    summary: "Foydalanuvchi kontrakti boyicha tolov jadvali va tarixini olish",
-  })
-  @ApiParam({ name: "contract_id", type: Number, example: 1 })
-  async getContractPayments(
-    @Param("contract_id", ParseIntPipe) contract_id: number,
-    @GetCurrentUser() buyerId: number
+  @Patch(":id/status")
+  @ApiOperation({ summary: "Confirm or reject a payment" })
+  @ApiParam({ name: "id", type: Number, description: "Payment ID" })
+  @ApiQuery({ name: "status", enum: PaymentStatus })
+  @ApiResponse({ status: 200, description: "Payment status updated" })
+  @ApiResponse({ status: 400, description: "Invalid status update" })
+  async updateStatus(
+    @Param("id", ParseIntPipe) paymentId: number,
+    @Query("status") status: PaymentStatus
   ) {
-    return this.paymentsService.getContractPayments(contract_id, buyerId);
+    return this.paymentsService.updateStatus(paymentId, status);
   }
 
-  // =============================================
-  // 3️⃣ Foydalanuvchi tolovlarini status boyicha olish
-  // =============================================
-  @Get("own")
-  @ApiOperation({
-    summary: "Foydalanuvchining tolovlarini status boyicha olish",
-  })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    enum: PaymentStatus,
-    description: "Tolov holati boyicha filtrlash (pending, paid, late...)",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Foydalanuvchi tolovlari muvaffaqiyatli qaytarildi",
-  })
-  async getUserPaymentsByStatus(
-    @Query("status") status: PaymentStatus,
-    @GetCurrentUser() buyerId: number
+  @Get("contract/:contractId")
+  @ApiOperation({ summary: "Get all payments and schedule for a contract" })
+  @ApiParam({ name: "contractId", type: Number })
+  @ApiQuery({ name: "buyerId", type: Number, description: "ID of the buyer" })
+  async getContractPayments(
+    @Param("contractId", ParseIntPipe) contractId: number,
+    @Query("buyerId", ParseIntPipe) buyerId: number
   ) {
-    if (!buyerId) throw new ForbiddenException("Foydalanuvchi aniqlanmadi");
+    return this.paymentsService.getContractPayments(contractId, buyerId);
+  }
+
+  @Get("buyer/:buyerId")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get all payments for a buyer, optionally by status",
+  })
+  @ApiParam({ name: "buyerId", type: Number })
+  @ApiQuery({ name: "status", enum: PaymentStatus, required: false })
+  async getByBuyer(
+    @GetCurrentUser("id") buyerId: number,
+    @Query("status") status?: PaymentStatus
+  ) {
     return this.paymentsService.getByBuyerIdAndStatus(buyerId, status);
   }
 
-  // =============================================
-  // 4️⃣ Admin — barcha tolovlarni olish
-  // =============================================
   @Get()
-  @Roles("admin")
-  @UseGuards(RolesGuard)
-  @ApiOperation({ summary: "Admin — barcha tolovlarni olish" })
+  @ApiOperation({ summary: "Admin: get all payments" })
   async findAll() {
     return this.paymentsService.findAll();
-  }
-
-  // =============================================
-  // 5️⃣ Admin — tolovni tasdiqlash
-  // =============================================
-  @Patch(":id/confirm")
-  @Roles("admin")
-  @UseGuards(RolesGuard)
-  @ApiOperation({ summary: "Admin — tolovni tasdiqlash (status = paid)" })
-  @ApiParam({ name: "id", type: Number, example: 1 })
-  @ApiResponse({
-    status: 200,
-    description: "Tolov muvaffaqiyatli tasdiqlandi",
-  })
-  async confirmPayment(@Param("id", ParseIntPipe) id: number) {
-    return this.paymentsService.confirm(id);
-  }
-
-  // =============================================
-  // 6️⃣ Admin — tolovni rad etish
-  // =============================================
-  @Patch(":id/reject")
-  @Roles("admin")
-  @UseGuards(RolesGuard)
-  @ApiOperation({ summary: "Admin — tolovni rad etish (status = rejected)" })
-  @ApiParam({ name: "id", type: Number, example: 1 })
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        reason: {
-          type: "string",
-          example: "Notogri tolov summasi yoki kontrakt raqami",
-        },
-      },
-    },
-  })
-  async rejectPayment(
-    @Param("id", ParseIntPipe) id: number,
-    @Body("reason") reason?: string
-  ) {
-    return this.paymentsService.reject(id, reason);
   }
 }

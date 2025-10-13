@@ -26,22 +26,22 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 
-@ApiTags("Authentication") // Swaggerda bolim nomi
+@ApiTags("Authentication")
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /** ---------------- REGISTER ---------------- */
   @Post("register")
-  @ApiOperation({ summary: "Yangi foydalanuvchini royxatdan otkazish" })
+  @ApiOperation({ summary: "Register a new user" })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({
     status: 201,
-    description: "Foydalanuvchi muvaffaqiyatli royxatdan otdi",
+    description: "User successfully registered",
   })
   @ApiResponse({
     status: 400,
-    description: "Notogri ma'lumot kiritilgan yoki foydalanuvchi mavjud",
+    description: "Invalid data provided or user already exists",
   })
   async register(@Body() dto: CreateUserDto) {
     return this.authService.register(dto);
@@ -49,13 +49,13 @@ export class AuthController {
 
   /** ---------------- SIGN IN ---------------- */
   @Post("signin")
-  @ApiOperation({ summary: "Foydalanuvchini tizimga kirgizish (login)" })
+  @ApiOperation({ summary: "Sign in an existing user (login)" })
   @ApiBody({ type: SignInDto })
   @ApiResponse({
     status: 200,
-    description: "Kirish muvaffaqiyatli amalga oshirildi",
+    description: "Login successful",
   })
-  @ApiResponse({ status: 401, description: "Login yoki parol notogri" })
+  @ApiResponse({ status: 401, description: "Invalid email or password" })
   async signIn(
     @Body() dto: SignInDto,
     @Res({ passthrough: true }) res: Response
@@ -65,30 +65,30 @@ export class AuthController {
 
   /** ---------------- SEND OTP ---------------- */
   @Post("send-otp")
-  @ApiOperation({ summary: "Email manzilga OTP (tasdiqlash kodi) yuborish" })
+  @ApiOperation({ summary: "Send OTP (verification code) to email address" })
   @ApiBody({
     schema: {
       example: { email: "qobiljon@example.com" },
     },
   })
-  @ApiResponse({ status: 200, description: "OTP muvaffaqiyatli yuborildi" })
-  @ApiResponse({ status: 404, description: "Email topilmadi" })
+  @ApiResponse({ status: 200, description: "OTP sent successfully" })
+  @ApiResponse({ status: 404, description: "Email not found" })
   async sendOtp(@Body("email") email: string) {
     return this.authService.sendOtp(email);
   }
 
   /** ---------------- VERIFY OTP ---------------- */
   @Post("verify-otp")
-  @ApiOperation({ summary: "Email uchun yuborilgan OTP ni tasdiqlash" })
+  @ApiOperation({ summary: "Verify the OTP sent to email" })
   @ApiBody({
     schema: {
       example: { email: "qobiljon@example.com", otp: "123456" },
     },
   })
-  @ApiResponse({ status: 200, description: "OTP muvaffaqiyatli tasdiqlandi" })
+  @ApiResponse({ status: 200, description: "OTP verified successfully" })
   @ApiResponse({
     status: 400,
-    description: "OTP notogri yoki muddati otgan",
+    description: "Invalid or expired OTP",
   })
   async verifyOtp(
     @Body() body: { email: string; otp: string },
@@ -99,7 +99,7 @@ export class AuthController {
 
   /** ---------------- FORGOT PASSWORD ---------------- */
   @Post("forgot-password")
-  @ApiOperation({ summary: "Parolni tiklash uchun emailga link yuborish" })
+  @ApiOperation({ summary: "Send password reset link to email" })
   @ApiBody({
     schema: {
       example: { email: "qobiljon@example.com" },
@@ -107,16 +107,16 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: "Parolni tiklash uchun link yuborildi",
+    description: "Password reset link sent successfully",
   })
-  @ApiResponse({ status: 404, description: "Email topilmadi" })
+  @ApiResponse({ status: 404, description: "Email not found" })
   async forgotPassword(@Body("email") email: string) {
     return this.authService.forgetPassword(email);
   }
 
   /** ---------------- RESET PASSWORD ---------------- */
   @Post("reset-password")
-  @ApiOperation({ summary: "Yangi parolni ornatish (reset password)" })
+  @ApiOperation({ summary: "Set a new password (reset password)" })
   @ApiBody({
     schema: {
       example: {
@@ -128,11 +128,11 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: "Parol muvaffaqiyatli ozgartirildi",
+    description: "Password successfully changed",
   })
   @ApiResponse({
     status: 400,
-    description: "Token notogri yoki parollar mos emas",
+    description: "Invalid token or passwords do not match",
   })
   async resetPassword(
     @Body() body: { token: string; password: string; confirmPassword: string }
@@ -147,12 +147,12 @@ export class AuthController {
   /** ---------------- REFRESH TOKEN ---------------- */
   @Get("refresh")
   @UseGuards(JwtRefresh)
-  @ApiOperation({ summary: "Refresh token orqali yangi access token olish" })
+  @ApiOperation({ summary: "Get new access token using refresh token" })
   @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: "Yangi tokenlar qaytarildi" })
+  @ApiResponse({ status: 200, description: "New tokens returned successfully" })
   @ApiResponse({
     status: 401,
-    description: "Refresh token notogri yoki muddati otgan",
+    description: "Invalid or expired refresh token",
   })
   async refresh(
     @Res({ passthrough: true }) res: Response,
@@ -164,9 +164,9 @@ export class AuthController {
   /** ---------------- SIGN OUT ---------------- */
   @Get("signout")
   @UseGuards(JwtRefresh)
-  @ApiOperation({ summary: "Foydalanuvchini tizimdan chiqish (logout)" })
+  @ApiOperation({ summary: "Sign out the user (logout)" })
   @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: "Foydalanuvchi tizimdan chiqdi" })
+  @ApiResponse({ status: 200, description: "User logged out successfully" })
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @GetCurrentUser("refreshToken") refreshToken: string
@@ -177,34 +177,32 @@ export class AuthController {
   /** ---------------- ME ---------------- */
   @UseGuards(JwtAuthGuard)
   @Get("me")
-  @ApiOperation({
-    summary: "Hozir tizimga kirgan foydalanuvchi ma'lumotlarini olish",
-  })
+  @ApiOperation({ summary: "Get current authenticated user information" })
   @ApiBearerAuth()
   @ApiResponse({
     status: 200,
-    description: "Foydalanuvchi ma'lumotlari qaytarildi",
+    description: "User data returned successfully",
   })
-  @ApiResponse({ status: 401, description: "Token notogri yoki mavjud emas" })
+  @ApiResponse({ status: 401, description: "Invalid or missing access token" })
   async me(@GetUser("id") userId: number) {
     return this.authService.me(userId);
   }
 
   /** ---------------- ACTIVATE ACCOUNT ---------------- */
   @Get("activate/:link")
-  @ApiOperation({ summary: "Email orqali akkauntni aktivatsiya qilish" })
+  @ApiOperation({ summary: "Activate user account via email link" })
   @ApiParam({
     name: "link",
     example: "activation_link_abc123",
-    description: "Aktivatsiya havolasi",
+    description: "Activation link",
   })
   @ApiResponse({
     status: 200,
-    description: "Akkaunt muvaffaqiyatli aktivlashtirildi",
+    description: "Account successfully activated",
   })
   @ApiResponse({
     status: 400,
-    description: "Aktivatsiya havolasi notogri yoki muddati otgan",
+    description: "Invalid or expired activation link",
   })
   async activate(@Param("link") activationLink: string) {
     return this.authService.activate(activationLink);
