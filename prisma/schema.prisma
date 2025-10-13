@@ -93,14 +93,6 @@ model installment_plans {
   contracts contracts[]
 }
 
-model sales_model {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  created_at  DateTime? @default(now())
-  updated_at  DateTime? @updatedAt
-}
-
 model device_details {
   id             Int       @id @default(autoincrement())
   color          String?

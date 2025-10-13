@@ -6,7 +6,10 @@ import {
 import { JwtPayloadWithRefreshToken } from "../../jwt/jwt.service";
 
 export const GetCurrentUser = createParamDecorator(
-  (data: keyof JwtPayloadWithRefreshToken | undefined, context: ExecutionContext) => {
+  (
+    data: keyof JwtPayloadWithRefreshToken | undefined,
+    context: ExecutionContext
+  ) => {
     const request = context.switchToHttp().getRequest();
     const user = request.user as JwtPayloadWithRefreshToken;
 

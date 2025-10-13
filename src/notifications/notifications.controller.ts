@@ -64,7 +64,15 @@ export class NotificationsController {
       skip: skip ? parseInt(skip, 10) : 0,
     };
 
-    return await this.notificationsService.getNotificationsByStatus(
+    const parsedLimit = limit ? parseInt(limit, 10) : 25;
+    const parsedSkip = skip ? parseInt(skip, 10) : 0;
+
+    if (isNaN(parsedLimit) || isNaN(parsedSkip)) {
+      throw new BadRequestException("Pagination parameters must be numbers");
+    }
+
+    return this.notificationsService.getNotificationsByStatus(
+      user_id,
       parsedIsRead,
       pagination
     );
