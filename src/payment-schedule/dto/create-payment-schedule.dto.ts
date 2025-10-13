@@ -22,11 +22,4 @@ export class CreatePaymentScheduleDto {
   })
   @IsNotEmpty()
   amount_due: number;
-
-  @ApiProperty({
-    example: 0,
-    description: "To'langan summa",
-  })
-  @IsNotEmpty()
-  paid_amount: number;
 }

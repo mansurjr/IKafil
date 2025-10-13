@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, Prisma, payment_schedule } from "@prisma/client";
 
 @Injectable()
 export class PaymentsService {
@@ -16,110 +16,134 @@ export class PaymentsService {
     const contract = await this.prisma.contracts.findUnique({
       where: { id: dto.contract_id },
     });
-    if (!contract) {
-      throw new NotFoundException(
-        `Contract with id ${dto.contract_id} not found`
-      );
-    }
 
-    if (contract.buyer_id !== buyerId) {
-      throw new ForbiddenException(
-        `You are not allowed to pay for this contract`
-      );
-    }
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (contract.buyer_id !== buyerId)
+      throw new ForbiddenException("You can only pay for your own contract");
 
-    let amountStr: string;
-    if (typeof (dto as any).amount === "number") {
-      amountStr = (dto as any).amount.toFixed(2);
-    } else {
-      amountStr = (dto as any).amount;
-    }
-    if (!amountStr) {
-      throw new BadRequestException("Payment amount is required");
-    }
-
-    const nextSchedule = await this.prisma.payment_schedule.findFirst({
-      where: { contract_id: dto.contract_id, status: "pending" },
-      orderBy: { due_date: "asc" },
-    });
-
-    if (!nextSchedule) {
-      throw new BadRequestException(
-        `No pending payment schedule found for contract ${dto.contract_id}`
-      );
-    }
-
-    const schedulePaidAmount = nextSchedule.paid_amount ?? "0";
-    const prev = Number(schedulePaidAmount);
-    const paid = Number(amountStr);
-    if (isNaN(paid) || paid <= 0) {
+    const amount = Number(dto.amount);
+    if (isNaN(amount) || amount <= 0)
       throw new BadRequestException("Invalid payment amount");
-    }
 
-    let newPaidAmount = prev + paid;
-    const amountDue = Number(String(nextSchedule.amount_due));
-    const scheduleStatus = newPaidAmount >= amountDue ? "paid" : "pending";
-
-    const created = await this.prisma.$transaction(async (tx) => {
-      const updatedSchedule = await tx.payment_schedule.update({
-        where: { id: nextSchedule.id },
-        data: {
-          paid_amount: String(newPaidAmount.toFixed(2)),
-          status: scheduleStatus,
-        },
-      });
-
-      const payment = await tx.payments.create({
-        data: {
-          contract_id: dto.contract_id,
-          amount: String(amountStr),
-          payment_date: dto.payment_date
-            ? new Date(dto.payment_date)
-            : new Date(),
-          method: (dto as any).method ?? "cash",
-          status: (dto as any).status ?? "paid",
-        },
-      });
-
-      const remainingBefore = Number(String(contract.remaining_balance ?? 0));
-      const remainingAfter = Math.max(0, remainingBefore - paid);
-      await tx.contracts.update({
-        where: { id: contract.id },
-        data: {
-          remaining_balance: String(remainingAfter.toFixed(2)),
-        },
-      });
-
-      return { payment, updatedSchedule };
+    const payment = await this.prisma.payments.create({
+      data: {
+        contract_id: dto.contract_id,
+        amount: amount.toFixed(2),
+        method: dto.method || "cash",
+        status: PaymentStatus.pending,
+      },
     });
 
     return {
-      message: "Payment registered successfully",
-      payment: created.payment,
-      payment_schedule: created.updatedSchedule,
+      message: "Payment created and pending confirmation",
+      payment,
     };
   }
+
+  async updateStatus(paymentId: number, status: PaymentStatus) {
+    const payment = await this.prisma.payments.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment)
+      throw new NotFoundException(`Payment not found (id: ${paymentId})`);
+
+    if (payment.status !== PaymentStatus.pending)
+      throw new BadRequestException(
+        `Only pending payments can be updated (current: ${payment.status})`
+      );
+
+    const contract = await this.prisma.contracts.findUnique({
+      where: { id: payment.contract_id },
+    });
+    if (!contract)
+      throw new NotFoundException(
+        `Contract ${payment.contract_id} not found for this payment`
+      );
+
+    if (status === PaymentStatus.paid) {
+      const amount = Number(payment.amount);
+      const remainingBefore = Number(contract.remaining_balance || 0);
+      const newRemaining = Math.max(0, remainingBefore - amount);
+
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const updatedPayment = await tx.payments.update({
+          where: { id: paymentId },
+          data: { status: PaymentStatus.paid, payment_date: new Date() },
+        });
+
+        const nextSchedule: payment_schedule | null =
+          await tx.payment_schedule.findFirst({
+            where: { contract_id: contract.id, status: PaymentStatus.pending },
+            orderBy: { due_date: "asc" },
+          });
+
+        let updatedSchedule: payment_schedule | null = null;
+
+        if (nextSchedule) {
+          const prevPaid = Number(nextSchedule.paid_amount ?? 0);
+          const amountDue = Number(nextSchedule.amount_due);
+          const newPaid = prevPaid + amount;
+
+          updatedSchedule = await tx.payment_schedule.update({
+            where: { id: nextSchedule.id },
+            data: {
+              paid_amount: newPaid.toFixed(2),
+              status:
+                newPaid >= amountDue
+                  ? PaymentStatus.paid
+                  : PaymentStatus.pending,
+              amount_due: amountDue - newPaid,
+            },
+          });
+        }
+
+        await tx.contracts.update({
+          where: { id: contract.id },
+          data: { remaining_balance: newRemaining.toFixed(2) },
+        });
+
+        return { updatedPayment, updatedSchedule, newRemaining };
+      });
+
+      return {
+        message: "Payment confirmed and contract balance updated",
+        paymentId,
+        newRemaining: updated.newRemaining,
+        updatedSchedule: updated.updatedSchedule,
+      };
+    }
+
+    if (status === PaymentStatus.failed) {
+      await this.prisma.payments.update({
+        where: { id: paymentId },
+        data: { status: PaymentStatus.failed },
+      });
+      return { message: "Payment rejected", paymentId };
+    }
+
+    throw new BadRequestException("Invalid status update type");
+  }
+
   async getContractPayments(contractId: number, buyerId: number) {
     const contract = await this.prisma.contracts.findUnique({
       where: { id: contractId },
     });
     if (!contract)
       throw new NotFoundException(`Contract ${contractId} not found`);
-    if (contract.buyer_id !== buyerId) {
-      throw new ForbiddenException(
-        "You are not allowed to view this contract's payments"
-      );
-    }
+    if (contract.buyer_id !== buyerId)
+      throw new ForbiddenException("You cannot view another user's payments");
 
-    const schedules = await this.prisma.payment_schedule.findMany({
-      where: { contract_id: contractId },
-      orderBy: { due_date: "asc" },
-    });
-
-    const payments = await this.prisma.payments.findMany({
-      where: { contract_id: contractId },
-      orderBy: { payment_date: "desc" },
-    });
+    const [schedules, payments] = await Promise.all([
+      this.prisma.payment_schedule.findMany({
+        where: { contract_id: contractId },
+        orderBy: { due_date: "asc" },
+      }),
+      this.prisma.payments.findMany({
+        where: { contract_id: contractId },
+        orderBy: { payment_date: "desc" },
+      }),
+    ]);
 
     return {
       contract: {
@@ -130,8 +154,8 @@ export class PaymentsService {
         start_date: contract.start_date,
         end_date: contract.end_date,
       },
-      payment_schedule: schedules,
-      payment_history: payments,
+      schedule: schedules,
+      history: payments,
     };
   }
 
@@ -140,99 +164,28 @@ export class PaymentsService {
       where: { buyer_id: buyerId },
       select: { id: true },
     });
-    const contractIds = contracts.map((c) => c.id);
-    if (contractIds.length === 0) {
-      throw new NotFoundException(`No contracts found for buyer ${buyerId}`);
-    }
+    if (!contracts.length)
+      throw new NotFoundException(`No contracts found for this buyer`);
 
-    const whereClause: any = { contract_id: { in: contractIds } };
-    if (status) whereClause.status = status;
+    const where: Prisma.paymentsWhereInput = {
+      contract_id: { in: contracts.map((c) => c.id) },
+      ...(status ? { status } : {}),
+    };
 
     const payments = await this.prisma.payments.findMany({
-      where: whereClause,
+      where,
       orderBy: { payment_date: "desc" },
     });
 
-    if (!payments.length) {
-      throw new NotFoundException(
-        `No payments found for buyer with id ${buyerId}${status ? ` and status "${status}"` : ""}`
-      );
-    }
+    if (!payments.length)
+      throw new NotFoundException("No payments found for this buyer");
 
     return payments;
   }
+
   async findAll() {
-    return this.prisma.payments.findMany({ orderBy: { payment_date: "desc" } });
-  }
-
-  async confirm(paymentId: number) {
-    const payment = await this.prisma.payments.findUnique({
-      where: { id: paymentId },
+    return this.prisma.payments.findMany({
+      orderBy: { payment_date: "desc" },
     });
-
-    if (!payment) {
-      throw new NotFoundException(`Tolov topilmadi (id: ${paymentId})`);
-    }
-
-    if (payment.status === PaymentStatus.paid) {
-      throw new BadRequestException("Bu tolov allaqachon tasdiqlangan");
-    }
-
-    const contract = await this.prisma.contracts.findUnique({
-      where: { id: payment.contract_id },
-    });
-
-    if (!contract) {
-      throw new NotFoundException("Kontrakt topilmadi");
-    }
-
-    const paidAmount = Number(payment.amount);
-    const remainingBefore = Number(contract.remaining_balance || 0);
-    const newRemaining = Math.max(0, remainingBefore - paidAmount);
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.payments.update({
-        where: { id: paymentId },
-        data: { status: PaymentStatus.paid },
-      });
-
-      await tx.contracts.update({
-        where: { id: contract.id },
-        data: { remaining_balance: newRemaining.toFixed(2) },
-      });
-    });
-
-    return {
-      message: "Tolov muvaffaqiyatli tasdiqlandi",
-      paymentId,
-      newRemaining,
-    };
-  }
-
-  async reject(paymentId: number, reason?: string) {
-    const payment = await this.prisma.payments.findUnique({
-      where: { id: paymentId },
-    });
-
-    if (!payment) {
-      throw new NotFoundException(`Tolov topilmadi (id: ${paymentId})`);
-    }
-
-    if (payment.status === PaymentStatus.failed) {
-      throw new BadRequestException("Bu tolov allaqachon rad etilgan");
-    }
-
-    await this.prisma.payments.update({
-      where: { id: paymentId },
-      data: {
-        status: PaymentStatus.failed,
-      },
-    });
-
-    return {
-      message: "Tolov rad etildi",
-      paymentId,
-      reason: reason || "Sabab korsatilmagan",
-    };
   }
 }

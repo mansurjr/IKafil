@@ -197,7 +197,7 @@ model payments {
   id           Int           @id @default(autoincrement())
   contract_id  Int
   amount       Decimal
-  payment_date DateTime?     @default(now())
+  payment_date DateTime?
   method       PaymentMethod @default(cash)
   status       PaymentStatus @default(paid)
   created_at   DateTime?     @default(now())

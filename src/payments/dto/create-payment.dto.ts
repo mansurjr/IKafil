@@ -18,13 +18,6 @@ export class CreatePaymentDto {
   amount: string;
 
   @ApiProperty({
-    example: "2025-10-08T12:00:00Z",
-    description: "Payment date in ISO 8601 format",
-  })
-  @IsDateString({}, { message: "payment_date must be a valid ISO date string" })
-  payment_date: string;
-
-  @ApiProperty({
     example: "CASH",
     enum: PaymentMethod,
     description: "Payment method",
@@ -33,16 +26,6 @@ export class CreatePaymentDto {
     message: "method must be a valid PaymentMethod enum value",
   })
   method: PaymentMethod;
-
-  @ApiProperty({
-    example: "PENDING",
-    enum: PaymentStatus,
-    description: "Payment status",
-  })
-  @IsEnum(PaymentStatus, {
-    message: "status must be a valid PaymentStatus enum value",
-  })
-  status: PaymentStatus;
 
   @ApiProperty({
     example: 1,
