@@ -8,7 +8,6 @@ import { DevicesModule } from "./devices/devices.module";
 import { DeviceDetailsModule } from "./device-details/device-details.module";
 import { DeviceImagesModule } from "./device-images/device-images.module";
 import { InstallmentPlansModule } from "./installment-plans/installment-plans.module";
-import { TradeInModule } from "./trade-in/trade-in.module";
 import { ContractsModule } from "./contracts/contracts.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { CartsModule } from "./carts/carts.module";
@@ -17,11 +16,12 @@ import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { JwtModule } from "./jwt/jwt.module";
 import { MulterModule } from "@nestjs/platform-express";
-import { MailModule } from './mail/mail.module';
-import { BotModule } from './bot/bot.module';
+import { MailModule } from "./mail/mail.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
 import { PaymentScheduleModule } from './payment-schedule/payment-schedule.module';
+import { JwtStrategy } from "./common/strategies/access-strategy";
+import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
 
 @Module({
   imports: [
@@ -42,7 +42,6 @@ import { PaymentScheduleModule } from './payment-schedule/payment-schedule.modul
     DeviceDetailsModule,
     DeviceImagesModule,
     InstallmentPlansModule,
-    TradeInModule,
     ContractsModule,
     PaymentsModule,
     CartsModule,
@@ -51,10 +50,9 @@ import { PaymentScheduleModule } from './payment-schedule/payment-schedule.modul
     PrismaModule,
     JwtModule,
     MailModule,
-    BotModule,
     PaymentScheduleModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, JwtStrategy, RefreshJwtStrategy],
 })
 export class AppModule {}

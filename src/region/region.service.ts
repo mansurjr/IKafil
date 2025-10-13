@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateRegionDto } from "./dto/create-region.dto";
 import { UpdateRegionDto } from "./dto/update-region.dto";
+import { message } from "telegraf/filters";
 
 @Injectable()
 export class RegionService {
@@ -37,8 +38,9 @@ export class RegionService {
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.region.delete({
+    await this.prisma.region.delete({
       where: { id },
     });
+    return { message: "Region deleted successfully" };
   }
 }

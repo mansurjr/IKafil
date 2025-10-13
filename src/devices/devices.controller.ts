@@ -12,10 +12,8 @@ import {
   UsePipes,
   ValidationPipe,
   BadRequestException,
+  Query,
 } from "@nestjs/common";
-import { DevicesService } from "./devices.service";
-import { CreateDeviceDto } from "./dto/create-device.dto";
-import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import {
   ApiTags,
@@ -23,7 +21,12 @@ import {
   ApiConsumes,
   ApiBody,
   ApiResponse,
+  ApiQuery,
+  ApiParam,
 } from "@nestjs/swagger";
+import { DevicesService } from "./devices.service";
+import { CreateDeviceDto } from "./dto/create-device.dto";
+import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { Express } from "express";
 
 @ApiTags("Devices")
@@ -49,7 +52,7 @@ export class DevicesController {
     if (typeof createDeviceDto.details === "string") {
       try {
         createDeviceDto.details = JSON.parse(createDeviceDto.details);
-      } catch (e) {
+      } catch {
         throw new BadRequestException('Invalid JSON format in "details" field');
       }
     }
@@ -58,14 +61,27 @@ export class DevicesController {
 
   @Get()
   @ApiOperation({ summary: "Get all devices" })
-  @ApiResponse({ status: 200, description: "List of devices." })
-  findAll() {
-    return this.devicesService.findAll();
+  @ApiResponse({ status: 200, description: "List of devices returned." })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    type: String,
+    example: "iPhone",
+  })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
+  findAll(
+    @Query("search") search?: string,
+    @Query("page", ParseIntPipe) page = 1,
+    @Query("limit", ParseIntPipe) limit = 10
+  ) {
+    return this.devicesService.findAll(search, page, limit);
   }
 
   @Get(":id")
   @ApiOperation({ summary: "Get device by ID" })
-  @ApiResponse({ status: 200, description: "Device details." })
+  @ApiParam({ name: "id", type: Number, example: 1 })
+  @ApiResponse({ status: 200, description: "Device details returned." })
   @ApiResponse({ status: 404, description: "Device not found." })
   async findOne(@Param("id", ParseIntPipe) id: number) {
     return this.devicesService.findOne(id);
@@ -73,10 +89,11 @@ export class DevicesController {
 
   @Put(":id")
   @UseInterceptors(FilesInterceptor("images"))
-  @ApiOperation({ summary: "Update a device (optionally upload new images)" })
+  @ApiOperation({ summary: "Update device (with optional new images)" })
   @ApiConsumes("multipart/form-data")
+  @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiBody({
-    description: "Updated device data (with optional new images)",
+    description: "Updated device data with optional images",
     type: UpdateDeviceDto,
   })
   @ApiResponse({ status: 200, description: "Device successfully updated." })
@@ -91,7 +108,8 @@ export class DevicesController {
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete a device" })
+  @ApiOperation({ summary: "Delete a device by ID" })
+  @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiResponse({ status: 200, description: "Device successfully deleted." })
   @ApiResponse({ status: 404, description: "Device not found." })
   async remove(@Param("id", ParseIntPipe) id: number) {

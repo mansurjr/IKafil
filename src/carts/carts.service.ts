@@ -1,13 +1,13 @@
-import { 
-  Injectable, 
-  NotFoundException, 
-  BadRequestException, 
-  ForbiddenException, 
-  HttpException, 
-  HttpStatus 
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateCartDto } from './dto/create-cart.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  ConflictException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateCartDto } from "./dto/create-cart.dto";
 
 @Injectable()
 export class CartService {
@@ -15,12 +15,12 @@ export class CartService {
 
   async addToCart(userId: number, dto: CreateCartDto) {
     try {
-      const { device_id, added_at } = dto;
+      const { device_id } = dto;
 
       const device = await this.prisma.devices.findUnique({
         where: { id: device_id },
       });
-      if (!device) throw new NotFoundException('Qurilma topilmadi');
+      if (!device) throw new NotFoundException("Device not found");
 
       const existing = await this.prisma.carts.findUnique({
         where: {
@@ -32,65 +32,61 @@ export class CartService {
       });
 
       if (existing) {
-        return { message: 'Bu qurilma allaqachon savatda mavjud', data: existing };
+        throw new ConflictException("This device is already in the cart");
       }
 
       const created = await this.prisma.carts.create({
         data: {
           user_id: userId,
           device_id,
-          added_at: added_at ?? new Date(),
         },
-        include: { device: true },
       });
 
-      return { message: 'Qurilma savatga qo‘shildi', data: created };
+      return { message: "Device added to cart", data: created };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException(error.message || 'Savatga qo‘shishda xatolik yuz berdi');
+      throw new BadRequestException(
+        error.message || "An error occurred while adding to cart"
+      );
     }
   }
-  
 
-  async findAll(userId: number) {
+  async getCardByUserId(userId: number) {
     try {
       const carts = await this.prisma.carts.findMany({
         where: { user_id: userId },
-        include: { device: true },
-        orderBy: { added_at: 'desc' },
+        orderBy: { added_at: "desc" },
       });
       return carts;
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException('Cartlarni olishda xatolik yuz berdi');
+      throw new BadRequestException("Error occurred while fetching carts");
     }
   }
-  // 2423342
 
   async remove(id: number, userId: number) {
-    try {
-      const existing = await this.prisma.carts.findUnique({ where: { id } });
-      if (!existing) throw new NotFoundException('Cart topilmadi');
+    const existing = await this.prisma.carts.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException("Cart not found");
 
-      if (existing.user_id !== userId) {
-        throw new ForbiddenException('Siz faqat o‘z savat yozuvingizni o‘chirishingiz mumkin');
-      }
-
-      await this.prisma.carts.delete({ where: { id } });
-      return { message: 'Cart muvaffaqiyatli o‘chirildi' };
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      throw new BadRequestException('Cartni o‘chirishda xatolik yuz berdi');
+    if (existing.user_id !== userId) {
+      throw new ForbiddenException("You can only delete your own cart items");
     }
+
+    await this.prisma.carts.delete({ where: { id } });
+    return { status: "ok" };
   }
 
   async removeAllForUser(userId: number) {
     try {
-      const deleted = await this.prisma.carts.deleteMany({ where: { user_id: userId } });
-      return { message: `Sizning ${deleted.count} ta savat yozuvingiz o‘chirildi` };
+      const deleted = await this.prisma.carts.deleteMany({
+        where: { user_id: userId },
+      });
+      return {
+        message: `Your ${deleted.count} cart item(s) have been deleted`,
+      };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException('Cartlarni o‘chirishda xatolik yuz berdi');
+      throw new BadRequestException("Error occurred while deleting carts");
     }
   }
 }

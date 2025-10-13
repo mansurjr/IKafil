@@ -19,7 +19,7 @@ export class ContractsService {
     private readonly planService: InstallmentPlansService
   ) {}
 
-  private async validateEntity<T>(
+  private async validateEntity(
     model: keyof PrismaClient,
     id: number,
     entityName: string
@@ -52,9 +52,15 @@ export class ContractsService {
     const base_price = Number(device.base_price);
     const months = Number(plan.months);
     const percent = Number(plan.percent);
+    let initial_payment = 0;
+    let total_price = base_price
 
-    const total_price = base_price * (1 + percent / 100);
-    const initial_payment = total_price / (months + 1);
+    // 🧮 Hisoblash formulalari
+    if (!dto.is_trade_in) {
+      total_price = base_price * (1 + percent / 100);
+      initial_payment = total_price / (months + 1);
+    }
+    
     const monthly_payment = total_price / months;
     const remaining_balance = total_price - initial_payment;
 
@@ -65,7 +71,6 @@ export class ContractsService {
           device_id,
           admin_id,
           plan_id,
-          trade_in_id,
           total_price,
           monthly_payment,
           duration_months: months,
@@ -139,7 +144,6 @@ export class ContractsService {
         device: true,
         admin: true,
         plan: true,
-        trade_in: true,
         payment_schedule: true,
         payments: true,
       },
@@ -155,7 +159,6 @@ export class ContractsService {
         device: true,
         admin: true,
         plan: true,
-        trade_in: true,
         payment_schedule: true,
         payments: true,
       },
@@ -185,7 +188,6 @@ export class ContractsService {
         device: true,
         admin: true,
         plan: true,
-        trade_in: true,
         payment_schedule: true,
         payments: true,
       },

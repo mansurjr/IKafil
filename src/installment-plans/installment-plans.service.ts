@@ -16,7 +16,6 @@ export class InstallmentPlansService {
 
   findAll() {
     return this.prisma.installment_plans.findMany({
-      include: { contracts: true },
     });
   }
 

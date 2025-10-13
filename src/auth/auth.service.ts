@@ -28,26 +28,23 @@ export class AuthService {
     private readonly mail: MailService
   ) {}
 
-  async register(dto: CreateUserDto) {
+  // ---------------- REGISTER ----------------
+  async register(dto: Omit<CreateUserDto, "role">) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
-    console.log(existing)
     if (existing) throw new BadRequestException("Email already registered");
 
     const activationLink = uuid.v4();
-
     await this.mail.sendMail(dto.email, activationLink);
 
     const user = await this.usersService.createUser(dto, activationLink);
-
-
     return { message: "User registered successfully", userId: user.id };
   }
 
+  // ---------------- ACTIVATE ----------------
   async activate(activationLink: string) {
     const user = await this.prisma.users.findFirst({
       where: { activation_link: activationLink },
     });
-
     if (!user) throw new BadRequestException("Invalid activation link");
 
     await this.prisma.users.update({
@@ -58,6 +55,7 @@ export class AuthService {
     return { message: "Account activated successfully" };
   }
 
+  // ---------------- SIGN IN ----------------
   async signIn(dto: SignInDto, res: Response) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
@@ -73,18 +71,21 @@ export class AuthService {
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
+      sameSite: "strict",
+      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return { accessToken: tokens.accessToken };
   }
 
+  // ---------------- SEND OTP ----------------
   async sendOtp(emailOrPhone: string) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new NotFoundException("User not found");
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + 60 * 1000);
 
     await this.prisma.users.update({
       where: { id: user.id },
@@ -96,6 +97,7 @@ export class AuthService {
     return { message: "OTP sent successfully" };
   }
 
+  // ---------------- VERIFY OTP ----------------
   async verifyOtp(emailOrPhone: string, otp: string, res: Response) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new BadRequestException("Invalid user");
@@ -116,18 +118,21 @@ export class AuthService {
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
+      sameSite: "strict",
+      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return { accessToken: tokens.accessToken };
   }
 
+  // ---------------- FORGOT PASSWORD ----------------
   async forgetPassword(email: string) {
     const user = await this.usersService.findByEmailOrPhone(email);
     if (!user) throw new BadRequestException("User not found");
 
     const token = uuid.v4();
-    const resetLink = `${this.config.get("APP_URL")}/reset-password/${token}`;
+    const resetLink = `${this.config.get("APP_URL")}/api/reset-password/${token}`;
 
     await this.prisma.users.update({
       where: { id: user.id },
@@ -135,18 +140,17 @@ export class AuthService {
     });
 
     await this.mail.sendResetPasswordMail(user, resetLink);
-
     return { message: "Password reset link sent to your email" };
   }
 
+  // ---------------- RESET PASSWORD ----------------
   async resetPassword(
     token: string,
     newPassword: string,
     confirmNewPassword: string
   ) {
-    if (newPassword !== confirmNewPassword) {
+    if (newPassword !== confirmNewPassword)
       throw new BadRequestException("Passwords do not match");
-    }
 
     const user = await this.prisma.users.findFirst({
       where: { resetLink: token },
@@ -154,7 +158,6 @@ export class AuthService {
     if (!user) throw new BadRequestException("Invalid or expired reset token");
 
     const hashed = await bcrypt.hash(newPassword, 10);
-
     await this.prisma.users.update({
       where: { id: user.id },
       data: { password: hashed, resetLink: null },
@@ -163,26 +166,32 @@ export class AuthService {
     return { message: "Password reset successfully" };
   }
 
+  // ---------------- REFRESH TOKEN ----------------
   async refresh(res: Response, refreshToken: string) {
     if (!refreshToken) throw new UnauthorizedException("No refresh token");
 
     const payload = this.jwtService.verifyRefreshToken(refreshToken);
     const user = await this.usersService.findById(payload.id);
-
-    if (!user || user.token !== refreshToken)
+    if (!user || !user.token)
       throw new UnauthorizedException("Invalid refresh token");
+
+    const isMatch = await bcrypt.compare(refreshToken, user.token);
+    if (!isMatch) throw new UnauthorizedException("Invalid refresh token");
 
     const tokens = await this.jwtService.generateTokens(user);
     await this.usersService.updateToken(user.id, tokens.refreshToken);
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
+      sameSite: "strict",
+      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return { accessToken: tokens.accessToken };
   }
 
+  // ---------------- SIGN OUT ----------------
   async signOut(res: Response, refreshToken: string) {
     if (!refreshToken) throw new UnauthorizedException("Not logged in");
 
@@ -193,13 +202,13 @@ export class AuthService {
     return { message: "Signed out successfully" };
   }
 
+  // ---------------- ME ----------------
   async me(userId: number) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException("User not found");
 
     const { password, token, otp_code, otp_expire, resetLink, ...safeUser } =
       user;
-
     return safeUser;
   }
 }

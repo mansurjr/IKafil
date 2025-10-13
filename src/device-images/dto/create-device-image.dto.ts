@@ -1,34 +1,29 @@
-import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsBoolean,
-  IsDateString,
-  IsNumber,
-  IsPositive,
-  IsString,
-  IsUrl,
-} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Transform, Type } from "class-transformer";
+import { IsBoolean, IsNumber, IsPositive, IsOptional } from "class-validator";
 
 export class CreateDeviceImageDto {
   @ApiProperty({
     example: 1,
-    description: "Qaysi qurilmaga tegishli rasm (device ID)",
+    description:
+      "Rasm tegishli bo‘lgan qurilmaning ID raqami (`devices` jadvalidan olinadi).",
   })
-  @IsNumber()
-  @IsPositive()
+  @Type(() => Number)
+  @IsNumber({}, { message: "device_id raqam (number) bo‘lishi kerak" })
+  @IsPositive({
+    message: "device_id musbat son (positive number) bo‘lishi kerak",
+  })
   device_id: number;
 
-  @ApiProperty({
-    example: "https://cdn.ikafil.uz/images/device1.jpg",
-    description: "Rasmning URL manzili",
-  })
-  @IsString()
-  @IsUrl()
-  url: string;
-
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: true,
-    description: "Asosiy rasmmi yo'qmi (true/false)",
+    description:
+      "Rasm asosiy rasm ekanligini bildiradi. `true` — asosiy, `false` — oddiy rasm.",
   })
-  @IsBoolean()
-  is_primary: boolean;
+  @IsOptional()
+  @Transform(({ value }) => value === "true" || value === true)
+  @IsBoolean({
+    message: "is_primary faqat boolean (true yoki false) qiymat bo‘lishi kerak",
+  })
+  is_primary?: boolean;
 }

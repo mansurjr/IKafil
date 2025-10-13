@@ -20,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
     }
     if (!payload.isActive) {
       throw new UnauthorizedException("Account is not active");
+      
     }
 
     return {

@@ -1,38 +1,45 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { CreateDeviceDetailDto } from "./dto/create-device-detail.dto";
 import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
+import { CreateDeviceDetailDto } from "./dto/create-device-detail.dto";
 
 @Injectable()
 export class DeviceDetailsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createDeviceDetailDto: CreateDeviceDetailDto) {
-    return this.prisma.device_details.create({
-      data: createDeviceDetailDto,
+  async findOne(deviceId: number) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id: deviceId },
+      include: { details: true },
     });
+
+    if (!device) throw new NotFoundException("Device not found");
+    if (!device.details)
+      throw new NotFoundException("Device details not found");
+
+    return device.details;
   }
 
-  async findAll() {
-    return this.prisma.device_details.findMany();
-  }
-
-  async findOne(id: number) {
-    return this.prisma.device_details.findUnique({
-      where: { id },
+  async update(deviceId: number, updateDeviceDetailDto: CreateDeviceDetailDto) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id: deviceId },
+      include: { details: true },
     });
-  }
 
-  async update(id: number, updateDeviceDetailDto: UpdateDeviceDetailDto) {
-    return this.prisma.device_details.update({
-      where: { id },
-      data: updateDeviceDetailDto,
-    });
-  }
+    if (!device) throw new NotFoundException("Device not found");
 
-  async remove(id: number) {
-    return this.prisma.device_details.delete({
-      where: { id },
-    });
+    if (device.details) {
+      return this.prisma.device_details.update({
+        where: { id: device.details.id },
+        data: updateDeviceDetailDto,
+      });
+    } else {
+      return this.prisma.device_details.create({
+        data: {
+          ...updateDeviceDetailDto,
+          device: { connect: { id: deviceId } },
+        },
+      });
+    }
   }
 }

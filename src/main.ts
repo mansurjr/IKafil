@@ -2,15 +2,33 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe, Logger } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import  cookieParser from "cookie-parser";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
 
   const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
-
+ app.useGlobalPipes(
+   new ValidationPipe({
+     whitelist: true, 
+     forbidNonWhitelisted: true,
+     forbidUnknownValues: false,
+     transform: true,
+     stopAtFirstError: false, 
+     exceptionFactory: (errors) => {
+       return {
+         message: "Validation failed",
+         errors: errors.map((err) => ({
+           field: err.property,
+           errors: Object.values(err.constraints || {}),
+         })),
+       };
+     },
+   })
+ );
   const config = new DocumentBuilder()
     .setTitle("Your Project API")
     .setDescription("API documentation for your project")
