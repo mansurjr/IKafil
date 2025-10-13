@@ -1,33 +1,50 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsInt,
+  IsDate,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateNotificationDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 1,
-    description: "Foydalanuvchi ID si",
+    description: "Foydalanuvchi ID si (agar mavjud bolsa)",
   })
+  @IsOptional()
+  @IsInt({ message: "user_id butun son bolishi kerak" })
   user_id?: number;
 
   @ApiProperty({
     example: "Yangi foydalanuvchi qo'shildi",
     description: "Xabar sarlavhasi",
   })
+  @IsString({ message: "title matn bolishi kerak" })
   title: string;
 
   @ApiProperty({
-    example: "Sizning foydalanuvchilingiz qo'shildi",
-    description: "Xabar matnini",
+    example: "Sizning foydalanuvchingiz muvaffaqiyatli qoshildi",
+    description: "Xabar matni",
   })
+  @IsString({ message: "message matn bolishi kerak" })
   message: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: false,
-    description: "Xabar o'qilgan yoki o'qilmaganini",
+    description: "Xabar oqilgan yoki yoqligini bildiradi",
   })
-  is_read: boolean;
+  @IsOptional()
+  @IsBoolean({ message: "is_read boolean qiymat bolishi kerak" })
+  is_read?: boolean = false;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: new Date(),
-    description: "Xabar yaratilgan vaqti",
+    description: "Xabar yaratilgan sana (ixtiyoriy, avtomatik belgilanadi)",
   })
-  created_at: Date;
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: "created_at sana formatida bolishi kerak" })
+  created_at?: Date = new Date();
 }

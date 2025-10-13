@@ -19,6 +19,7 @@ import { MulterModule } from "@nestjs/platform-express";
 import { MailModule } from "./mail/mail.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+import { PaymentScheduleModule } from './payment-schedule/payment-schedule.module';
 import { JwtStrategy } from "./common/strategies/access-strategy";
 import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
 
@@ -49,6 +50,7 @@ import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
     PrismaModule,
     JwtModule,
     MailModule,
+    PaymentScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, RefreshJwtStrategy],
