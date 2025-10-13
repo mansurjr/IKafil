@@ -24,26 +24,28 @@ export class MailService {
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error("Mail sending error:", error);
-      throw new ServiceUnavailableException("Failed to send email");
+      throw new ServiceUnavailableException(
+        "Failed to send email, Please retry later!"
+      );
     }
   }
 
   /** ---------------- ACTIVATE ACCOUNT MAIL ---------------- */
-  async sendMail(user: User): Promise<void> {
-    const activationLink = `${this.configService.get<string>(
+  async sendMail(mail: string, activationLink: string): Promise<void> {
+    const NewactivationLink = `${this.configService.get<string>(
       "APP_URL"
-    )}/auth/activate/${user.activation_link}`;
+    )}/auth/activate/${activationLink}`;
 
     const mailOptions = {
       from: this.configService.get<string>("SMTP_FROM"),
-      to: user.email!,
+      to: mail!,
       subject: "Activate Your Account - IKafil",
       html: `
         <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2>Hello, ${user.full_name}!</h2>
+          <h2>Hello!</h2>
           <p>Welcome to <strong>IKafil</strong> — your trusted shop for phones and accessories.</p>
           <p>Please activate your account by clicking the link below:</p>
-          <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #007bff; text-decoration: none; border-radius: 5px;">Activate Account</a>
+          <a href="${NewactivationLink}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #007bff; text-decoration: none; border-radius: 5px;">Activate Account</a>
           <p style="margin-top: 20px;">If you did not register on IKafil, please ignore this email.</p>
         </div>
       `,

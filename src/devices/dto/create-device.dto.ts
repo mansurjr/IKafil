@@ -1,31 +1,83 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { DeviceStatus, DeviceType, SaleType } from "@prisma/client";
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsDecimal,
+  IsNumber,
+  ValidateNested,
+  IsInt,
+  IsPositive,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { DeviceType, SaleType, DeviceStatus } from "@prisma/client";
+
+export class CreateDeviceDetailsDto {
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsInt()
+  year?: number;
+
+  @IsOptional()
+  @IsString()
+  cpu?: string;
+
+  @IsOptional()
+  @IsString()
+  ram?: string;
+
+  @IsOptional()
+  @IsString()
+  storage?: string;
+
+  @IsOptional()
+  @IsString()
+  display_size?: string;
+
+  @IsOptional()
+  @IsString()
+  battery_health?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
 
 export class CreateDeviceDto {
-  @ApiProperty({ example: "iPhone 14 Pro" })
+  @IsString()
   name: string;
 
-  @ApiProperty({ enum: DeviceType, example: DeviceType.iphone })
+  @IsEnum(DeviceType)
   type: DeviceType;
 
-  @ApiProperty({ enum: SaleType, example: SaleType.website_sold })
-  sale_type: SaleType;
+  @IsOptional()
+  @IsEnum(SaleType)
+  sale_type: SaleType = SaleType.website_sold;
 
-  @ApiProperty({ enum: DeviceStatus, example: DeviceStatus.approved })
-  status: DeviceStatus;
+  @IsOptional()
+  @IsEnum(DeviceStatus)
+  status?: DeviceStatus = DeviceStatus.pending_approval;
 
-  @ApiProperty({ example: 101 })
-  seller_id: number;
+  @IsInt()
+  @IsOptional()
+  seller_id?: number;
 
-  @ApiProperty({ example: 5 })
-  region_id: number;
+  @IsInt()
+  @IsOptional()
+  region_id?: number;
 
-  @ApiProperty({ example: 999.99 })
-  base_price: number;
+  @IsDecimal({}, { message: "Base price must be a valid decimal number" })
+  base_price: any;
 
-  @ApiProperty({ example: 202 })
-  details_id: number;
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean = true;
 
-  @ApiProperty({ example: true })
-  is_active: boolean;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateDeviceDetailsDto)
+  details?: CreateDeviceDetailsDto;
 }

@@ -34,7 +34,6 @@ export class ContractsService {
   async create(dto: CreateContractDto) {
     const { buyer_id, device_id, admin_id, plan_id, trade_in_id } = dto;
 
-    // 1️⃣ Tekshirish
     await this.validateEntity("users", buyer_id, "Buyer");
     await this.validateEntity("devices", device_id, "Device");
     if (admin_id) await this.validateEntity("users", admin_id, "Admin");
@@ -43,7 +42,6 @@ export class ContractsService {
     if (trade_in_id)
       await this.validateEntity("trade_in_requests", trade_in_id, "Trade-in");
 
-    // 2️⃣ Qurilma va reja ma'lumotlarini olish
     const device = await this.deviceService.findOne(device_id);
     const plan = await this.planService.findOne(plan_id!);
 
@@ -66,9 +64,7 @@ export class ContractsService {
     const monthly_payment = total_price / months;
     const remaining_balance = total_price - initial_payment;
 
-    // 3️⃣ Transaction
     return this.prisma.$transaction(async (tx) => {
-      // Contract yaratish
       const contract = await tx.contracts.create({
         data: {
           buyer_id,
@@ -80,7 +76,7 @@ export class ContractsService {
           monthly_payment,
           duration_months: months,
           remaining_balance,
-          initial_payment, // ✅ saqlaymiz
+          initial_payment,
           status: dto.status ?? "active",
           start_date: dto.start_date ?? new Date(),
           end_date:
@@ -94,7 +90,6 @@ export class ContractsService {
         },
       });
 
-      // 4️⃣ Payment schedule yaratish
       const startDate = new Date(dto.start_date ?? new Date());
       const schedules: Prisma.payment_scheduleCreateManyInput[] = [];
 
@@ -112,7 +107,6 @@ export class ContractsService {
 
       await tx.payment_schedule.createMany({ data: schedules });
 
-      // 5️⃣ Payments yaratish (boshlang‘ich + oyma-oy)
       const paymentsData: Prisma.paymentsCreateManyInput[] = [
         {
           contract_id: contract.id,
@@ -132,7 +126,6 @@ export class ContractsService {
 
       await tx.payments.createMany({ data: paymentsData });
 
-      // 🔙 Natija
       return {
         message: "✅ Contract created successfully with initial payment",
         contract_id: contract.id,

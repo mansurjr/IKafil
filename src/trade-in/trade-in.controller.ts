@@ -30,48 +30,44 @@ export class TradeInController {
   @ApiResponse({ status: 404, description: "Seller yoki qurilma topilmadi." })
   create(
     @Body() createTradeInDto: CreateTradeInDto,
-    @GetCurrentUser() userId: number
+    @GetCurrentUser("id") seller_id: number
   ) {
-    return this.tradeInService.create(createTradeInDto);
+    return this.tradeInService.create({ ...createTradeInDto, seller_id });
   }
 
   @Get()
   @ApiOperation({ summary: "Barcha trade-in so‘rovlarini olish" })
-  @ApiResponse({
-    status: 200,
-    description: "Barcha trade-in so‘rovlar ro‘yxati.",
-  })
   findAll() {
     return this.tradeInService.findAll();
   }
-  // done
+
   @Get(":id")
   @ApiOperation({ summary: "Bitta trade-in so‘rovini ID orqali olish" })
-  @ApiResponse({ status: 200, description: "Topilgan trade-in ma’lumotlari." })
-  @ApiResponse({ status: 404, description: "Trade-in topilmadi." })
   findOne(@Param("id") id: string) {
     return this.tradeInService.findOne(+id);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Trade-in so‘rovini yangilash" })
-  @ApiResponse({
-    status: 200,
-    description: "Trade-in muvaffaqiyatli yangilandi.",
-  })
-  @ApiResponse({ status: 404, description: "Trade-in topilmadi." })
   update(@Param("id") id: string, @Body() updateTradeInDto: UpdateTradeInDto) {
     return this.tradeInService.update(+id, updateTradeInDto);
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "Trade-in so‘rovini o‘chirish" })
-  @ApiResponse({
-    status: 200,
-    description: "Trade-in muvaffaqiyatli o‘chirildi.",
-  })
-  @ApiResponse({ status: 404, description: "Trade-in topilmadi." })
   remove(@Param("id") id: string) {
     return this.tradeInService.remove(+id);
+  }
+
+  @Patch(":id/approve")
+  @ApiOperation({ summary: "Trade-in so‘rovini tasdiqlash yoki rad etish" })
+  @ApiResponse({
+    status: 200,
+    description:
+      "Trade-in so‘rovi holati yangilandi (approved yoki rad etildi).",
+  })
+  @ApiResponse({ status: 404, description: "Trade-in topilmadi." })
+  approve(@Param("id") id: string, @Body("approved") approved: boolean) {
+    return this.tradeInService.approve(+id, approved);
   }
 }

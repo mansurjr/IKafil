@@ -7,7 +7,7 @@ import {
   Action,
   InjectBot,
 } from "nestjs-telegraf";
-import { Context, Telegraf } from "telegraf";
+import { Context } from "telegraf";
 import { BotService } from "./bot.service";
 import { AuthService } from "../auth/auth.service";
 import { UsersService } from "../users/users.service";
@@ -29,7 +29,6 @@ export class BotUpdate {
     private readonly botService: BotService,
     private readonly authService: AuthService,
     private readonly userService: UsersService,
-    @InjectBot() private readonly bot: Telegraf<BotContext>
   ) {}
 
   @Start()

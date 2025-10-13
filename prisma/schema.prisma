@@ -72,7 +72,7 @@ model users {
   password        String
   token           String?
   role            UserRole  @default(buyer)
-  is_active       Boolean?  @default(true)
+  is_active       Boolean?  @default(false)
   activation_link String?
   otp_code        String?
   otp_expire      DateTime?
@@ -122,7 +122,8 @@ model device_details {
   created_at     DateTime? @default(now())
   updated_at     DateTime? @updatedAt
 
-  devices devices[]
+  device    devices @relation(fields: [device_id], references: [id])
+  device_id Int     @unique
 }
 
 model devices {
@@ -134,14 +135,13 @@ model devices {
   seller_id  Int?
   region_id  Int?
   base_price Decimal
-  details_id Int?
   is_active  Boolean?     @default(true)
   created_at DateTime?    @default(now())
   updated_at DateTime?    @updatedAt
 
   seller                users?              @relation("UserDevices", fields: [seller_id], references: [id])
   region                region?             @relation(fields: [region_id], references: [id])
-  details               device_details?     @relation(fields: [details_id], references: [id])
+  details               device_details?
   device_images         device_images[]
   trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
   trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")

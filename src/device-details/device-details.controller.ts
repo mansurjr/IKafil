@@ -16,7 +16,6 @@ import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
 @Controller("device-details")
 export class DeviceDetailsController {
   constructor(private readonly deviceDetailsService: DeviceDetailsService) {}
-
   @Post()
   @ApiOperation({ summary: "Create a new device detail" })
   @ApiBody({ type: CreateDeviceDetailDto })
