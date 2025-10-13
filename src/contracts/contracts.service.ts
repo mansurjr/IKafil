@@ -54,10 +54,15 @@ export class ContractsService {
     const base_price = Number(device.base_price);
     const months = Number(plan.months);
     const percent = Number(plan.percent);
+    let initial_payment = 0;
+    let total_price = base_price
 
     // 🧮 Hisoblash formulalari
-    const total_price = base_price * (1 + percent / 100);
-    const initial_payment = total_price / (months + 1);
+    if (!dto.is_trade_in) {
+      total_price = base_price * (1 + percent / 100);
+      initial_payment = total_price / (months + 1);
+    }
+    
     const monthly_payment = total_price / months;
     const remaining_balance = total_price - initial_payment;
 
