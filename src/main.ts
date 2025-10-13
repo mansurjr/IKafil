@@ -11,8 +11,24 @@ async function bootstrap() {
   const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
-
+ app.useGlobalPipes(
+   new ValidationPipe({
+     whitelist: true, 
+     forbidNonWhitelisted: true,
+     forbidUnknownValues: false,
+     transform: true,
+     stopAtFirstError: false, 
+     exceptionFactory: (errors) => {
+       return {
+         message: "Validation failed",
+         errors: errors.map((err) => ({
+           field: err.property,
+           errors: Object.values(err.constraints || {}),
+         })),
+       };
+     },
+   })
+ );
   const config = new DocumentBuilder()
     .setTitle("Your Project API")
     .setDescription("API documentation for your project")

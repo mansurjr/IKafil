@@ -20,8 +20,6 @@ enum DeviceType {
   mac
 }
 
-
-
 enum SaleType {
   trade_in
   seller_sold
@@ -77,13 +75,12 @@ model users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
-  region            region?             @relation(fields: [region_id], references: [id])
-  devices           devices[]           @relation("UserDevices")
-  carts             carts[]
-  contracts_buyer   contracts[]         @relation("BuyerContracts")
-  contracts_admin   contracts[]         @relation("AdminContracts")
-  trade_in_requests trade_in_requests[]
-  notifications     notifications[]
+  region          region?             @relation(fields: [region_id], references: [id])
+  devices         devices[]           @relation("UserDevices")
+  carts           carts[]
+  contracts_buyer contracts[]         @relation("BuyerContracts")
+  contracts_admin contracts[]         @relation("AdminContracts")
+  notifications   notifications[]
 }
 
 model installment_plans {
@@ -126,6 +123,7 @@ model devices {
   name       String
   type       DeviceType
   sale_type  SaleType     @default(website_sold)
+  isTradible Boolean?     @default(false)
   seller_id  Int?
   region_id  Int?
   base_price Decimal
@@ -133,14 +131,12 @@ model devices {
   created_at DateTime?    @default(now())
   updated_at DateTime?    @updatedAt
 
-  seller                users?              @relation("UserDevices", fields: [seller_id], references: [id])
-  region                region?             @relation(fields: [region_id], references: [id])
-  details               device_details?
-  device_images         device_images[]
-  trade_in_requests_new trade_in_requests[] @relation("NewDeviceRelation")
-  trade_in_requests_old trade_in_requests[] @relation("OldDeviceRelation")
-  carts                 carts[]
-  contracts             contracts[]
+  seller        users?          @relation("UserDevices", fields: [seller_id], references: [id])
+  region        region?         @relation(fields: [region_id], references: [id])
+  details       device_details?
+  device_images device_images[]
+  carts         carts[]
+  contracts     contracts[]
 }
 
 model device_images {
@@ -151,22 +147,6 @@ model device_images {
   created_at DateTime? @default(now())
 
   device devices @relation(fields: [device_id], references: [id])
-}
-
-model trade_in_requests {
-  id                Int       @id @default(autoincrement())
-  seller_id         Int
-  old_device_id     Int
-  new_device_id     Int
-  estimated_value   Decimal
-  approved          Boolean?  @default(false)
-  difference_amount Decimal?
-  created_at        DateTime? @default(now())
-
-  seller     users       @relation(fields: [seller_id], references: [id])
-  old_device devices     @relation("OldDeviceRelation", fields: [old_device_id], references: [id])
-  new_device devices     @relation("NewDeviceRelation", fields: [new_device_id], references: [id])
-  contracts  contracts[]
 }
 
 model carts {
@@ -188,7 +168,6 @@ model contracts {
   device_id         Int
   admin_id          Int?
   plan_id           Int?
-  trade_in_id       Int?
   total_price       Decimal
   initial_payment   Decimal
   monthly_payment   Decimal
@@ -205,7 +184,6 @@ model contracts {
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
   device           devices            @relation(fields: [device_id], references: [id])
   plan             installment_plans? @relation(fields: [plan_id], references: [id])
-  trade_in         trade_in_requests? @relation(fields: [trade_in_id], references: [id])
   payment_schedule payment_schedule[]
   payments         payments[]
 }

@@ -69,7 +69,7 @@ export class UsersService {
   async findById(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id },
-      include: { region: true, devices: true },
+      include: { region: { select: { name: true } }, devices: true },
     });
 
     if (!user) throw new NotFoundException("User not found");
@@ -154,21 +154,45 @@ export class UsersService {
   async update(id: number, dto: UpdateUserDto) {
     const user = await this.prisma.users.findUnique({ where: { id } });
     if (!user) throw new NotFoundException("User not found");
+    if (dto.region_id) {
+      const region = await this.prisma.region.findUnique({
+        where: { id: dto.region_id },
+      });
+      if (!region) throw new NotFoundException("Region not found");
+    }
+    if (dto.username) {
+      const existingUser = await this.prisma.users.findFirst({
+        where: { username: dto.username },
+      });
+      if (existingUser && existingUser.id !== id) {
+        throw new BadRequestException("Username already exists");
+      }
+    }
 
-    const updateData: any = {
-      email: dto.email,
+    const updateData: UpdateUserDto = {
       username: dto.username,
       full_name: dto.full_name,
       phone: dto.phone,
       role: dto.role,
       region_id: dto.region_id,
-      is_active: dto.isActive,
+      isActive: dto.isActive,
     };
 
-    return this.prisma.users.update({
+    const updatedUser = await this.prisma.users.update({
       where: { id },
       data: updateData,
     });
+    const {
+      password,
+      token,
+      activation_link,
+      otp_code,
+      otp_expire,
+      resetLink,
+      region_id,
+      ...safeUser
+    } = this._excludePassword(updatedUser);
+    return safeUser;
   }
 
   /** =======================
@@ -178,7 +202,8 @@ export class UsersService {
     const user = await this.prisma.users.findUnique({ where: { id } });
     if (!user) throw new NotFoundException("User not found");
 
-    return this.prisma.users.delete({ where: { id } });
+    this.prisma.users.delete({ where: { id } });
+    return { status: "ok" };
   }
 
   /** =======================
@@ -202,7 +227,7 @@ export class UsersService {
       where: { id: { in: ids } },
     });
 
-    return { deletedCount: existingUsers.length };
+    return { deletedCount: existingUsers.length, status: "ok" };
   }
 
   /** =======================
