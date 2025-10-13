@@ -19,7 +19,7 @@ export class ContractsService {
     private readonly planService: InstallmentPlansService
   ) {}
 
-  private async validateEntity<T>(
+  private async validateEntity(
     model: keyof PrismaClient,
     id: number,
     entityName: string
