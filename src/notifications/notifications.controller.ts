@@ -1,38 +1,53 @@
-import { 
-  Controller, 
-  Get, 
-  Patch, 
-  Param, 
-  Query, 
-  ParseIntPipe 
-} from '@nestjs/common';
-import { NotificationsService } from './notifications.service';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+  BadRequestException,
+} from "@nestjs/common";
+import { NotificationsService } from "./notifications.service";
+import { AuthGuard } from "@nestjs/passport";
+import { GetCurrentUser } from "../common/decorators/getCurrentUserid";
 
-@Controller('notifications')
+@Controller("notifications")
+@UseGuards(AuthGuard("jwt"))
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) { }
-  
+  constructor(private readonly notificationsService: NotificationsService) {}
   @Get()
   async getNotifications(
-    @Query('is_read') is_read?: string,
-    @Query('limit') limit?: string,
-    @Query('skip') skip?: string,
+    @GetCurrentUser("id") user_id: number,
+    @Query("is_read") is_read?: string,
+    @Query("limit") limit?: string,
+    @Query("skip") skip?: string
   ) {
-    const parsedIsRead = 
-      is_read === undefined ? undefined : is_read === 'true';
-    const pagination = {
-      limit: limit ? parseInt(limit, 10) : 25,
-      skip: skip ? parseInt(skip, 10) : 0,
-    };
+    const parsedIsRead =
+      is_read === undefined ? undefined : is_read.toLowerCase() === "true";
 
-    return await this.notificationsService.getNotificationsByStatus(
+    const parsedLimit = limit ? parseInt(limit, 10) : 25;
+    const parsedSkip = skip ? parseInt(skip, 10) : 0;
+
+    if (isNaN(parsedLimit) || isNaN(parsedSkip)) {
+      throw new BadRequestException("Pagination parameters must be numbers");
+    }
+
+    return this.notificationsService.getNotificationsByStatus(
+      user_id,
       parsedIsRead,
-      pagination,
+      {
+        limit: parsedLimit,
+        skip: parsedSkip,
+      }
     );
   }
 
-  @Patch(':id/read')
-  async markAsRead(@Param('id', ParseIntPipe) id: number) {
-    return await this.notificationsService.markAsRead(id);
+  @Patch(":id/read")
+  async markAsRead(
+    @Param("id", ParseIntPipe) id: number,
+    @GetCurrentUser("id") userId: number
+  ) {
+    return this.notificationsService.markAsRead(id, userId);
   }
 }
