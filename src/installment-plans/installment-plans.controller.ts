@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { InstallmentPlansService } from "./installment-plans.service";
 import { CreateInstallmentPlanDto } from "./dto/create-installment-plan.dto";
@@ -43,15 +44,6 @@ export class InstallmentPlansController {
     return this.installmentPlansService.findAll();
   }
 
-  @Get(":id")
-  @ApiOperation({ summary: "Get installment plan through ID" })
-  @ApiParam({ name: "id", type: Number })
-  @ApiResponse({ status: 200, description: "Installment plan" })
-  @ApiResponse({ status: 404, description: "Installment plan not found" })
-  findOne(@Param("id") id: string) {
-    return this.installmentPlansService.findOne(+id);
-  }
-
   @Patch(":id")
   @ApiOperation({ summary: "Update installment plan through ID" })
   @ApiParam({ name: "id", type: Number })
@@ -64,10 +56,10 @@ export class InstallmentPlansController {
     description: "Something went wrong in update",
   })
   update(
-    @Param("id") id: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() updateInstallmentDto: UpdateInstallmentPlanDto
   ) {
-    return this.installmentPlansService.update(+id, updateInstallmentDto);
+    return this.installmentPlansService.update(id, updateInstallmentDto);
   }
 
   @Delete(":id")
@@ -78,9 +70,7 @@ export class InstallmentPlansController {
     description: "Installment plan deleted successfully",
   })
   @ApiResponse({ status: 404, description: "Installment plan not found" })
-  remove(@Param("id") id: string) {
-    return this.installmentPlansService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.installmentPlansService.remove(id);
   }
 }
-
-

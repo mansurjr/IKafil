@@ -1,61 +1,62 @@
 import {
   Controller,
-  Get,
   Post,
-  Body,
+  Get,
   Patch,
-  Param,
   Delete,
+  Param,
+  Body,
+  UploadedFile,
+  UseInterceptors,
+  ParseIntPipe,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBody, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import { DeviceImagesService } from "./device-images.service";
 import { CreateDeviceImageDto } from "./dto/create-device-image.dto";
 import { UpdateDeviceImageDto } from "./dto/update-device-image.dto";
 
-@ApiTags("Device Images") 
+@ApiTags("Device Images")
 @Controller("device-images")
 export class DeviceImagesController {
   constructor(private readonly deviceImagesService: DeviceImagesService) {}
 
   @Post()
-  @ApiOperation({ summary: "Add a new device image" })
-  @ApiResponse({ status: 201, description: "Image successfully created" })
-  @ApiResponse({ status: 400, description: "Invalid input data" })
-  create(@Body() createDeviceImageDto: CreateDeviceImageDto) {
-    return this.deviceImagesService.create(createDeviceImageDto);
+  @UseInterceptors(FileInterceptor("file"))
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    description: "Upload new device image",
+    schema: {
+      type: "object",
+      properties: {
+        device_id: { type: "number", example: 1 },
+        is_primary: { type: "boolean", example: true },
+        file: { type: "string", format: "binary" },
+      },
+    },
+  })
+  create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateDeviceImageDto
+  ) {
+    return this.deviceImagesService.create(dto, file);
   }
 
-  @Get()
-  @ApiOperation({ summary: "Get all device images" })
-  @ApiResponse({ status: 200, description: "List of device images returned" })
-  findAll() {
-    return this.deviceImagesService.findAll();
-  }
-
-  @Get(":id")
-  @ApiOperation({ summary: "Get a device image by ID" })
-  @ApiResponse({ status: 200, description: "Image found" })
-  @ApiResponse({ status: 404, description: "Image not found" })
-  findOne(@Param("id") id: string) {
-    return this.deviceImagesService.findOne(+id);
+  @Get(":deviceId")
+  getDeviceImages(@Param("deviceId", ParseIntPipe) deviceId: number) {
+    return this.deviceImagesService.getDeviceImagesById(deviceId);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update device image information by ID" })
-  @ApiResponse({ status: 200, description: "Image updated successfully" })
-  @ApiResponse({ status: 404, description: "Image not found" })
   update(
-    @Param("id") id: string,
-    @Body() updateDeviceImageDto: UpdateDeviceImageDto
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateDeviceImageDto
   ) {
-    return this.deviceImagesService.update(+id, updateDeviceImageDto);
+    return this.deviceImagesService.update(id, dto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete a device image by ID" })
-  @ApiResponse({ status: 200, description: "Image deleted successfully" })
-  @ApiResponse({ status: 404, description: "Image not found" })
-  remove(@Param("id") id: string) {
-    return this.deviceImagesService.remove(+id);
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.deviceImagesService.remove(id);
   }
 }

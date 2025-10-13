@@ -16,19 +16,7 @@ export class InstallmentPlansService {
 
   findAll() {
     return this.prisma.installment_plans.findMany({
-      include: { contracts: true },
     });
-  }
-
-  async findOne(id: number) {
-    const installment = await this.prisma.installment_plans.findUnique({
-      where: { id },
-      include: { contracts: true },
-    });
-    if (!installment) {
-      throw new NotFoundException(`Installment plan ID:${id} not found`);
-    }
-    return installment;
   }
 
   async update(id: number, updateInstallmentPlanDto: UpdateInstallmentPlanDto) {

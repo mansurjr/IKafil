@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam, ApiBody } from "@nestjs/swagger";
 import { DeviceDetailsService } from "./device-details.service";
@@ -16,41 +17,22 @@ import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
 @Controller("device-details")
 export class DeviceDetailsController {
   constructor(private readonly deviceDetailsService: DeviceDetailsService) {}
-  @Post()
-  @ApiOperation({ summary: "Create a new device detail" })
-  @ApiBody({ type: CreateDeviceDetailDto })
-  create(@Body() createDeviceDetailDto: CreateDeviceDetailDto) {
-    return this.deviceDetailsService.create(createDeviceDetailDto);
+
+  @Get(":deviceId")
+  @ApiOperation({ summary: "Get device details by device ID" })
+  @ApiParam({ name: "deviceId", type: Number })
+  findOne(@Param("deviceId", ParseIntPipe) deviceId: number) {
+    return this.deviceDetailsService.findOne(deviceId);
   }
 
-  @Get()
-  @ApiOperation({ summary: "Get all device details" })
-  findAll() {
-    return this.deviceDetailsService.findAll();
-  }
-
-  @Get(":id")
-  @ApiOperation({ summary: "Get a device detail by ID" })
-  @ApiParam({ name: "id", type: Number })
-  findOne(@Param("id") id: string) {
-    return this.deviceDetailsService.findOne(+id);
-  }
-
-  @Patch(":id")
-  @ApiOperation({ summary: "Update a device detail by ID" })
-  @ApiParam({ name: "id", type: Number })
+  @Patch(":deviceId")
+  @ApiOperation({ summary: "Update or create device details by device ID" })
+  @ApiParam({ name: "deviceId", type: Number })
   @ApiBody({ type: UpdateDeviceDetailDto })
   update(
-    @Param("id") id: string,
+    @Param("deviceId", ParseIntPipe) deviceId: number,
     @Body() updateDeviceDetailDto: UpdateDeviceDetailDto
   ) {
-    return this.deviceDetailsService.update(+id, updateDeviceDetailDto);
-  }
-
-  @Delete(":id")
-  @ApiOperation({ summary: "Delete a device detail by ID" })
-  @ApiParam({ name: "id", type: Number })
-  remove(@Param("id") id: string) {
-    return this.deviceDetailsService.remove(+id);
+    return this.deviceDetailsService.update(deviceId, updateDeviceDetailDto);
   }
 }

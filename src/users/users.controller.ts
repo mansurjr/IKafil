@@ -8,11 +8,14 @@ import {
   Delete,
   BadRequestException,
   Query,
+  NotFoundException,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserRole } from "@prisma/client";
+import { ApiOperation, ApiParam } from "@nestjs/swagger";
 
 @Controller("users")
 export class UsersController {
@@ -51,36 +54,42 @@ export class UsersController {
    * GET USER BY ID
    * ======================= */
   @Get(":id")
-  async findOne(@Param("id") id: string) {
-    const numericId = Number(id);
-    if (isNaN(numericId)) {
-      throw new BadRequestException("Invalid user ID");
-    }
-    return this.usersService.findById(numericId);
+  @ApiOperation({ summary: "Get user by ID (safe response)" })
+  @ApiParam({ name: "id", type: Number })
+  async findOne(@Param("id", ParseIntPipe) id: number) {
+    const user = await this.usersService.findById(id);
+
+    const {
+      password,
+      token,
+      activation_link,
+      otp_code,
+      otp_expire,
+      resetLink,
+      region_id,
+      ...safeUser
+    } = user;
+
+    return safeUser;
   }
 
   /** =======================
    * UPDATE USER
    * ======================= */
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
-    const numericId = Number(id);
-    if (isNaN(numericId)) {
-      throw new BadRequestException("Invalid user ID");
-    }
-    return this.usersService.update(numericId, updateUserDto);
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto
+  ) {
+    return this.usersService.update(id, updateUserDto);
   }
 
   /** =======================
    * DELETE SINGLE USER
    * ======================= */
   @Delete(":id")
-  async remove(@Param("id") id: string) {
-    const numericId = Number(id);
-    if (isNaN(numericId)) {
-      throw new BadRequestException("Invalid user ID");
-    }
-    return this.usersService.remove(numericId);
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    return this.usersService.remove(id);
   }
 
   /** =======================
