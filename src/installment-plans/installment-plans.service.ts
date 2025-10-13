@@ -19,6 +19,17 @@ export class InstallmentPlansService {
     });
   }
 
+  async findOne(id: number) {
+    const installment = await this.prisma.installment_plans.findUnique({
+      where: { id },
+      include: { contracts: true },
+    });
+    if (!installment) {
+      throw new NotFoundException(`Installment plan ID:${id} not found`);
+    }
+    return installment;
+  }
+
   async update(id: number, updateInstallmentPlanDto: UpdateInstallmentPlanDto) {
     const installment = await this.prisma.installment_plans.findUnique({
       where: { id },
