@@ -14,6 +14,7 @@ import {
   BadRequestException,
   Query,
   UseGuards,
+  DefaultValuePipe,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import {
@@ -53,7 +54,6 @@ export class DevicesController {
     @Body() createDeviceDto: any,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
-    // Parse details JSON if passed as string
     if (typeof createDeviceDto.details === "string") {
       try {
         createDeviceDto.details = JSON.parse(createDeviceDto.details);
@@ -76,8 +76,8 @@ export class DevicesController {
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   findAll(
     @Query("search") search?: string,
-    @Query("page", ParseIntPipe) page = 1,
-    @Query("limit", ParseIntPipe) limit = 10
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page = 1,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit = 10
   ) {
     return this.devicesService.findAll(search, page, limit);
   }

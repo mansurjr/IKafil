@@ -207,4 +207,44 @@ export class AuthController {
   async activate(@Param("link") activationLink: string) {
     return this.authService.activate(activationLink);
   }
+
+  @Post("reset-password-no-token")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Reset password without a token (directly via email/phone)",
+  })
+  @ApiBody({
+    schema: {
+      example: {
+        newPassword: "newPassword123",
+        confirmNewPassword: "newPassword123",
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Password reset successfully",
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Passwords do not match",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "User not found",
+  })
+  async resetPasswordWithoutToken(
+    @Body()
+    body: {
+      newPassword: string;
+      confirmNewPassword: string;
+    },
+    @GetCurrentUser("id") id: number
+  ) {
+    return this.authService.resetPasswordWithoutToken(
+      id,
+      body.newPassword,
+      body.confirmNewPassword
+    );
+  }
 }

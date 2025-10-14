@@ -25,6 +25,29 @@ export class PaymentsService {
     if (isNaN(amount) || amount <= 0)
       throw new BadRequestException("Invalid payment amount");
 
+    const pendingSchedules = await this.prisma.payment_schedule.findMany({
+      where: {
+        contract_id: dto.contract_id,
+        status: PaymentStatus.pending,
+      },
+    });
+
+    if (!pendingSchedules.length) {
+      throw new BadRequestException(
+        "All payments for this contract are already completed. Cannot create a new payment."
+      );
+    }
+
+    const nextPending = pendingSchedules.sort(
+      (a, b) => a.due_date.getTime() - b.due_date.getTime()
+    )[0];
+
+    if (amount > Number(nextPending.amount_due)) {
+      throw new BadRequestException(
+        `Payment amount exceeds the next pending payment (${nextPending.amount_due})`
+      );
+    }
+
     const payment = await this.prisma.payments.create({
       data: {
         contract_id: dto.contract_id,

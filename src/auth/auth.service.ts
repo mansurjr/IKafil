@@ -211,4 +211,25 @@ export class AuthService {
       user;
     return safeUser;
   }
+  // ---------------- RESET PASSWORD WITHOUT TOKEN ----------------
+  async resetPasswordWithoutToken(
+    id: number,
+    newPassword: string,
+    confirmNewPassword: string
+  ) {
+    if (newPassword !== confirmNewPassword) {
+      throw new BadRequestException("Passwords do not match");
+    }
+
+    const user = await this.usersService.findById(id);
+    if (!user) throw new NotFoundException("User not found");
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.users.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return { message: "Password reset successfully" };
+  }
 }
