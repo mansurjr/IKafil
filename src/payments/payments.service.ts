@@ -17,6 +17,12 @@ export class PaymentsService {
       where: { id: dto.contract_id },
     });
 
+    if (+dto.amount < +contract?.monthly_payment!) {
+      throw new ForbiddenException(
+        `Minimum amount should be ${contract?.monthly_payment}`
+      );
+    }
+
     if (!contract) throw new NotFoundException("Contract not found");
     if (contract.buyer_id !== buyerId)
       throw new ForbiddenException("You can only pay for your own contract");
@@ -62,7 +68,6 @@ export class PaymentsService {
       payment,
     };
   }
-
   async updateStatus(paymentId: number, status: PaymentStatus) {
     const payment = await this.prisma.payments.findUnique({
       where: { id: paymentId },
@@ -70,11 +75,6 @@ export class PaymentsService {
 
     if (!payment)
       throw new NotFoundException(`Payment not found (id: ${paymentId})`);
-
-    if (payment.status !== PaymentStatus.pending)
-      throw new BadRequestException(
-        `Only pending payments can be updated (current: ${payment.status})`
-      );
 
     const contract = await this.prisma.contracts.findUnique({
       where: { id: payment.contract_id },
@@ -95,27 +95,18 @@ export class PaymentsService {
           data: { status: PaymentStatus.paid, payment_date: new Date() },
         });
 
-        const nextSchedule: payment_schedule | null =
-          await tx.payment_schedule.findFirst({
-            where: { contract_id: contract.id, status: PaymentStatus.pending },
-            orderBy: { due_date: "asc" },
-          });
+        const currentSchedule = await tx.payment_schedule.findFirst({
+          where: { contract_id: contract.id, status: PaymentStatus.pending },
+          orderBy: { due_date: "asc" },
+        });
 
-        let updatedSchedule: payment_schedule | null = null;
-        if (nextSchedule) {
-          const prevPaid = Number(nextSchedule.paid_amount ?? 0);
-          const amountDue = Number(nextSchedule.amount_due);
-          const newPaid = prevPaid + amount;
-
-          updatedSchedule = await tx.payment_schedule.update({
-            where: { id: nextSchedule.id },
+        if (currentSchedule) {
+          await tx.payment_schedule.update({
+            where: { id: currentSchedule.id },
             data: {
-              paid_amount: newPaid.toFixed(2),
-              status:
-                newPaid >= amountDue
-                  ? PaymentStatus.paid
-                  : PaymentStatus.pending,
-              amount_due: Math.max(0, amountDue - newPaid),
+              status: PaymentStatus.paid,
+              paid_amount: amount,
+              amount_due: 0,
             },
           });
         }
@@ -126,26 +117,51 @@ export class PaymentsService {
         });
 
         if (newRemaining <= 0) {
-          const pendingSchedules = await tx.payment_schedule.count({
-            where: { contract_id: contract.id, status: PaymentStatus.pending },
+          await tx.payment_schedule.updateMany({
+            where: { contract_id: contract.id },
+            data: {
+              status: PaymentStatus.paid,
+              amount_due: 0,
+              paid_amount: undefined,
+            },
           });
 
-          if (pendingSchedules === 0) {
-            await tx.contracts.update({
-              where: { id: contract.id },
-              data: { status: "completed" },
+          await tx.contracts.update({
+            where: { id: contract.id },
+            data: { status: "completed", remaining_balance: "0" },
+          });
+
+          return {
+            updatedPayment,
+            message: "All payments completed, contract fully closed",
+          };
+        }
+
+        const remainingSchedules = await tx.payment_schedule.findMany({
+          where: { contract_id: contract.id, status: PaymentStatus.pending },
+          orderBy: { due_date: "asc" },
+        });
+
+        if (remainingSchedules.length > 0 && newRemaining > 0) {
+          const newMonthly = parseFloat(
+            (newRemaining / remainingSchedules.length).toFixed(2)
+          );
+
+          for (const schedule of remainingSchedules) {
+            await tx.payment_schedule.update({
+              where: { id: schedule.id },
+              data: { amount_due: newMonthly },
             });
           }
         }
 
-        return { updatedPayment, updatedSchedule, updatedContract };
+        return { updatedPayment, updatedContract };
       });
 
       return {
-        message: "Payment confirmed and contract balance updated",
+        message: "Payment processed successfully",
         paymentId,
-        newRemaining: updated.updatedContract.remaining_balance,
-        updatedSchedule: updated.updatedSchedule,
+        remaining_balance: updated.updatedContract!.remaining_balance,
       };
     }
 
