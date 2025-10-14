@@ -2,7 +2,8 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe, Logger, BadRequestException } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import  cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
+import { NotFoundFilter } from "./common/filters/notFoundFile";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,27 +12,28 @@ async function bootstrap() {
   const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
 
- app.useGlobalPipes(
-   new ValidationPipe({
-     whitelist: true,
-     forbidNonWhitelisted: true,
-     forbidUnknownValues: false,
-     transform: true,
-     stopAtFirstError: false,
-     exceptionFactory: (errors) => {
-       const formattedErrors = errors.map((err) => ({
-         field: err.property,
-         errors: Object.values(err.constraints || {}),
-       }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      forbidUnknownValues: false,
+      transform: true,
+      stopAtFirstError: false,
+      exceptionFactory: (errors) => {
+        const formattedErrors = errors.map((err) => ({
+          field: err.property,
+          errors: Object.values(err.constraints || {}),
+        }));
 
-       return new BadRequestException({
-         message: "Validation failed",
-         errors: formattedErrors,
-       });
-     },
-   })
- );
+        return new BadRequestException({
+          message: "Validation failed",
+          errors: formattedErrors,
+        });
+      },
+    })
+  );
 
+  app.useGlobalFilters(new NotFoundFilter());
   const config = new DocumentBuilder()
     .setTitle("Your Project API")
     .setDescription("API documentation for your project")
