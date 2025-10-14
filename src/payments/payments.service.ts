@@ -5,13 +5,21 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  PaymentStatus,
+  PaymentMethod,
+  Prisma,
+  payment_schedule,
+} from "@prisma/client";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
-import { PaymentStatus, Prisma, payment_schedule } from "@prisma/client";
 
 @Injectable()
 export class PaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * 💰 1. Create payment (cash -> auto paid, online -> pending)
+   */
   async create(dto: CreatePaymentDto, buyerId: number) {
     const contract = await this.prisma.contracts.findUnique({
       where: { id: dto.contract_id },
@@ -25,51 +33,84 @@ export class PaymentsService {
     if (isNaN(amount) || amount <= 0)
       throw new BadRequestException("Invalid payment amount");
 
-    const pendingSchedules = await this.prisma.payment_schedule.findMany({
-      where: {
-        contract_id: dto.contract_id,
-        status: PaymentStatus.pending,
-      },
+    const nextPending = await this.prisma.payment_schedule.findFirst({
+      where: { contract_id: dto.contract_id, status: PaymentStatus.pending },
+      orderBy: { due_date: "asc" },
     });
 
-    if (!pendingSchedules.length) {
-      throw new BadRequestException(
-        "All payments for this contract are already completed. Cannot create a new payment."
-      );
-    }
+    if (!nextPending)
+      throw new BadRequestException("All payments are already completed");
 
-    const nextPending = pendingSchedules.sort(
-      (a, b) => a.due_date.getTime() - b.due_date.getTime()
-    )[0];
+    const scheduleRemaining =
+      Number(nextPending.amount_due) - Number(nextPending.paid_amount ?? 0);
 
-    if (amount > Number(nextPending.amount_due)) {
+    if (amount > scheduleRemaining)
       throw new BadRequestException(
-        `Payment amount exceeds the next pending payment (${nextPending.amount_due})`
+        `Payment exceeds next required amount (${scheduleRemaining.toFixed(2)})`
       );
-    }
 
     const payment = await this.prisma.payments.create({
       data: {
         contract_id: dto.contract_id,
         amount: amount.toFixed(2),
-        method: dto.method || "cash",
-        status: PaymentStatus.pending,
+        method: dto.method,
+        status:
+          dto.method === PaymentMethod.cash
+            ? PaymentStatus.paid
+            : PaymentStatus.pending,
+        payment_date: dto.method === PaymentMethod.cash ? new Date() : null,
       },
     });
 
+    if (dto.method === PaymentMethod.cash) {
+      const result = await this.updateStatus(payment.id, PaymentStatus.paid);
+      return {
+        message: "✅ Cash payment accepted and confirmed.",
+        payment: result.payment,
+        updatedSchedule: result.updatedSchedule,
+        newRemaining: result.newRemaining,
+      };
+    }
+
     return {
-      message: "Payment created and pending confirmation",
+      message: "💳 Online payment created. Waiting for confirmation.",
       payment,
     };
   }
 
+  /**
+   * 🔁 2. Admin/processor confirms or rejects payment
+   *
+   * Note:
+   * - We compute schedule updates for the next pending schedule only (partial allowed).
+   * - After schedule updates we recompute remaining_balance using aggregate sum of amount_due
+   *   from payment_schedule (this ensures contract.remaining_balance always equals
+   *   sum of outstanding schedule amounts).
+   */
   async updateStatus(paymentId: number, status: PaymentStatus) {
     const payment = await this.prisma.payments.findUnique({
       where: { id: paymentId },
     });
+    if (!payment) throw new NotFoundException("Payment not found");
 
-    if (!payment)
-      throw new NotFoundException(`Payment not found (id: ${paymentId})`);
+    if (
+      payment.status === PaymentStatus.paid &&
+      status === PaymentStatus.paid
+    ) {
+      return {
+        message: "Payment is already confirmed.",
+        payment,
+        updatedSchedule: null,
+        newRemaining: Number(
+          (
+            await this.prisma.contracts.findUnique({
+              where: { id: payment.contract_id },
+              select: { remaining_balance: true },
+            })
+          )?.remaining_balance ?? 0
+        ),
+      };
+    }
 
     if (payment.status !== PaymentStatus.pending)
       throw new BadRequestException(
@@ -79,58 +120,67 @@ export class PaymentsService {
     const contract = await this.prisma.contracts.findUnique({
       where: { id: payment.contract_id },
     });
-    if (!contract)
-      throw new NotFoundException(
-        `Contract ${payment.contract_id} not found for this payment`
-      );
+    if (!contract) throw new NotFoundException("Contract not found");
 
     if (status === PaymentStatus.paid) {
       const amount = Number(payment.amount);
-      const remainingBefore = Number(contract.remaining_balance || 0);
-      const newRemaining = Math.max(0, remainingBefore - amount);
 
-      const updated = await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
         const updatedPayment = await tx.payments.update({
           where: { id: paymentId },
-          data: { status: PaymentStatus.paid, payment_date: new Date() },
+          data: {
+            status: PaymentStatus.paid,
+            payment_date: new Date(),
+          },
         });
 
-        const nextSchedule: payment_schedule | null =
-          await tx.payment_schedule.findFirst({
-            where: { contract_id: contract.id, status: PaymentStatus.pending },
-            orderBy: { due_date: "asc" },
-          });
+        const nextSchedule = await tx.payment_schedule.findFirst({
+          where: { contract_id: contract.id, status: PaymentStatus.pending },
+          orderBy: { due_date: "asc" },
+        });
 
         let updatedSchedule: payment_schedule | null = null;
         if (nextSchedule) {
           const prevPaid = Number(nextSchedule.paid_amount ?? 0);
-          const amountDue = Number(nextSchedule.amount_due);
-          const newPaid = prevPaid + amount;
+          const originalAmountDue = Number(nextSchedule.amount_due) + prevPaid;
+
+          const scheduleRemaining = Number(nextSchedule.amount_due);
+          const amountToApply = Math.min(amount, scheduleRemaining);
+          const newPaid = prevPaid + amountToApply;
+          const newAmountDue = Math.max(0, scheduleRemaining - amountToApply);
 
           updatedSchedule = await tx.payment_schedule.update({
             where: { id: nextSchedule.id },
             data: {
               paid_amount: newPaid.toFixed(2),
+              amount_due: newAmountDue.toFixed(2),
               status:
-                newPaid >= amountDue
-                  ? PaymentStatus.paid
-                  : PaymentStatus.pending,
-              amount_due: Math.max(0, amountDue - newPaid),
+                newAmountDue <= 0 ? PaymentStatus.paid : PaymentStatus.pending,
             },
           });
         }
 
-        const updatedContract = await tx.contracts.update({
-          where: { id: contract.id },
-          data: { remaining_balance: newRemaining.toFixed(2) },
+        const agg = await tx.payment_schedule.aggregate({
+          where: { contract_id: contract.id },
+          _sum: { amount_due: true },
         });
 
-        if (newRemaining <= 0) {
-          const pendingSchedules = await tx.payment_schedule.count({
-            where: { contract_id: contract.id, status: PaymentStatus.pending },
+        const remainingSum = Number(agg._sum.amount_due ?? 0);
+
+        const updatedContract = await tx.contracts.update({
+          where: { id: contract.id },
+          data: { remaining_balance: remainingSum.toFixed(2) },
+        });
+
+        if (remainingSum <= 0) {
+          const stillPending = await tx.payment_schedule.count({
+            where: {
+              contract_id: contract.id,
+              status: PaymentStatus.pending,
+            },
           });
 
-          if (pendingSchedules === 0) {
+          if (stillPending === 0) {
             await tx.contracts.update({
               where: { id: contract.id },
               data: { status: "completed" },
@@ -138,36 +188,36 @@ export class PaymentsService {
           }
         }
 
-        return { updatedPayment, updatedSchedule, updatedContract };
+        return {
+          message: "✅ Payment confirmed successfully",
+          payment: updatedPayment,
+          updatedSchedule,
+          newRemaining: updatedContract.remaining_balance,
+        };
       });
-
-      return {
-        message: "Payment confirmed and contract balance updated",
-        paymentId,
-        newRemaining: updated.updatedContract.remaining_balance,
-        updatedSchedule: updated.updatedSchedule,
-      };
     }
 
     if (status === PaymentStatus.failed) {
-      await this.prisma.payments.update({
+      const failed = await this.prisma.payments.update({
         where: { id: paymentId },
         data: { status: PaymentStatus.failed },
       });
-      return { message: "Payment rejected", paymentId };
+      return { message: "❌ Payment marked as failed", payment: failed };
     }
 
-    throw new BadRequestException("Invalid status update type");
+    throw new BadRequestException("Invalid status update");
   }
 
+  /**
+   * 📜 3. Buyer payment history + schedule
+   */
   async getContractPayments(contractId: number, buyerId: number) {
     const contract = await this.prisma.contracts.findUnique({
       where: { id: contractId },
     });
-    if (!contract)
-      throw new NotFoundException(`Contract ${contractId} not found`);
+    if (!contract) throw new NotFoundException("Contract not found");
     if (contract.buyer_id !== buyerId)
-      throw new ForbiddenException("You cannot view another user's payments");
+      throw new ForbiddenException("Access denied");
 
     const [schedules, payments] = await Promise.all([
       this.prisma.payment_schedule.findMany({
@@ -186,41 +236,61 @@ export class PaymentsService {
         contract_number: contract.contract_number,
         total_price: contract.total_price,
         remaining_balance: contract.remaining_balance,
-        start_date: contract.start_date,
-        end_date: contract.end_date,
+        status: contract.status,
       },
       schedule: schedules,
       history: payments,
     };
   }
 
-  async getByBuyerIdAndStatus(buyerId: number, status?: PaymentStatus) {
-    const contracts = await this.prisma.contracts.findMany({
-      where: { buyer_id: buyerId },
-      select: { id: true },
-    });
-    if (!contracts.length)
-      throw new NotFoundException(`No contracts found for this buyer`);
-
-    const where: Prisma.paymentsWhereInput = {
-      contract_id: { in: contracts.map((c) => c.id) },
-      ...(status ? { status } : {}),
-    };
-
-    const payments = await this.prisma.payments.findMany({
-      where,
-      orderBy: { payment_date: "desc" },
-    });
-
-    if (!payments.length)
-      throw new NotFoundException("No payments found for this buyer");
-
-    return payments;
-  }
-
+  /**
+   * 🧮 4. Admin: get all payments
+   */
   async findAll() {
     return this.prisma.payments.findMany({
       orderBy: { payment_date: "desc" },
     });
+  }
+  /**
+   * 👤 5. Get all payments for a buyer (optionally filtered by status)
+   */
+  async getByBuyerIdAndStatus(buyerId: number, status?: PaymentStatus) {
+    const contracts = await this.prisma.contracts.findMany({
+      where: { buyer_id: buyerId },
+      select: { id: true, contract_number: true },
+    });
+
+    if (!contracts.length)
+      throw new NotFoundException("No contracts found for this buyer");
+
+    const contractIds = contracts.map((c) => c.id);
+
+    const payments = await this.prisma.payments.findMany({
+      where: {
+        contract_id: { in: contractIds },
+        ...(status ? { status } : {}),
+      },
+      orderBy: { payment_date: "desc" },
+      include: {
+        contract: {
+          select: {
+            contract_number: true,
+            total_price: true,
+            remaining_balance: true,
+            status: true,
+            start_date: true,
+            end_date: true,
+          },
+        },
+      },
+    });
+
+    return {
+      buyerId,
+      totalContracts: contracts.length,
+      totalPayments: payments.length,
+      statusFilter: status ?? "all",
+      payments,
+    };
   }
 }

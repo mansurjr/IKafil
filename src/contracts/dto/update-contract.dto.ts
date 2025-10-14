@@ -6,6 +6,5 @@ export class UpdateContractDto extends PartialType(
     "is_trade_in",
     "plan_id",
     "admin_id",
-    "trade_in_id",
   ] as const)
 ) {}
