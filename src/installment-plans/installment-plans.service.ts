@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateInstallmentPlanDto } from "./dto/create-installment-plan.dto";
 import { UpdateInstallmentPlanDto } from "./dto/update-installment-plan.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { QueryInstallmentPlanDto } from "./dto/query-installment-plan.dto";
 
 
 @Injectable()
@@ -14,8 +15,33 @@ export class InstallmentPlansService {
     });
   }
 
-  findAll() {
+  async findAll(query: QueryInstallmentPlanDto) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "months",
+      sortOrder = "asc",
+    } = query;
+
+    const skip = (page - 1) * limit;
+
     return this.prisma.installment_plans.findMany({
+      where: {
+        months: query.months,
+        percent: {
+          gte: query.percent_gte,
+          lte: query.percent_lte,
+        },
+        first_payment_percent: {
+          gte: query.first_payment_percent_gte,
+          lte: query.first_payment_percent_lte,
+        },
+      },
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+      skip,
+      take: limit,
     });
   }
 
@@ -53,5 +79,23 @@ export class InstallmentPlansService {
     await this.prisma.installment_plans.delete({ where: { id } });
     return { message: "Installement deleted successfully!" };
   }
-  
+
+  async getTopPlans(limit = 5) {
+    return this.prisma.installment_plans.findMany({
+      orderBy: { percent: "desc" },
+      take: limit,
+    });
+  }
+
+  async findByDateRange(startDate: Date, endDate: Date) {
+    return this.prisma.installment_plans.findMany({
+      where: {
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { created_at: "desc" },
+    });
+  }
 }

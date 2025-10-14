@@ -9,6 +9,7 @@ import {
   UploadedFile,
   UseInterceptors,
   ParseIntPipe,
+  Query,
 } from "@nestjs/common";
 import {
   ApiBody,
@@ -17,6 +18,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiResponse,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { DeviceImagesService } from "./device-images.service";
@@ -54,6 +56,28 @@ export class DeviceImagesController {
     @Body() dto: CreateDeviceImageDto
   ) {
     return this.deviceImagesService.create(dto, file);
+  }
+
+  @Get("smart/top")
+  @ApiOperation({ summary: "Eng ko'p rasmga ega qurilmalarni olish" })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    example: 5,
+    description: "Qancha qurilmani olish (default 5)",
+  })
+  async getTopImageDevices(@Query("limit") limit = 5) {
+    return this.deviceImagesService.getTopImageDevices(Number(limit));
+  }
+
+  @Get("smart/empty")
+  @ApiOperation({ summary: "Rasmga ega bo'lmagan qurilmalarni olish" })
+  @ApiResponse({
+    status: 200,
+    description: "Rasmsiz qurilmalar ro'yxati qaytariladi",
+  })
+  async findDevicesWithoutImages() {
+    return this.deviceImagesService.findDevicesWithoutImages();
   }
 
   @Get(":deviceId")
