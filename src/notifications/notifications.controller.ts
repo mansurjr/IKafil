@@ -73,7 +73,6 @@ export class NotificationsController {
     @Query("limit") limit?: string,
     @Query("skip") skip?: string
   ) {
-    // Parse is_read flag properly
     const parsedIsRead =
       is_read === undefined
         ? undefined
@@ -87,7 +86,6 @@ export class NotificationsController {
                 );
               })();
 
-    // Validate pagination
     const parsedLimit = limit ? parseInt(limit, 10) : 25;
     const parsedSkip = skip ? parseInt(skip, 10) : 0;
 

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import {
   Controller,
   Get,
@@ -29,7 +30,6 @@ import {
 import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
-import { Express } from "express";
 import { DeviceSaleStatus } from "@prisma/client";
 import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
