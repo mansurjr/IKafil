@@ -7,12 +7,14 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from "@nestjs/swagger";
 import { InstallmentPlansService } from "./installment-plans.service";
 import { CreateInstallmentPlanDto } from "./dto/create-installment-plan.dto";
 import { UpdateInstallmentPlanDto } from "./dto/update-installment-plan.dto";
+import { QueryInstallmentPlanDto } from "./dto/query-installment-plan.dto";
 import { Roles } from "../common/decorators/roles";
 import { adminRoles } from "../types";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
@@ -53,8 +55,38 @@ export class InstallmentPlansController {
     status: 200,
     description: "All installment plans retrieved successfully.",
   })
-  findAll() {
-    return this.installmentPlansService.findAll();
+  @Get()
+  findAll(@Query() query: QueryInstallmentPlanDto) {
+    return this.installmentPlansService.findAll(query);
+  }
+
+  @Get("top")
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    example: 5,
+    description: "Qancha top plan olish kerak",
+  })
+  async getTopPlans(@Query("limit") limit?: number) {
+    return this.installmentPlansService.getTopPlans(limit);
+  }
+
+  @Get("date-range")
+  @ApiQuery({
+    name: "startDate",
+    example: "2025-10-01T00:00:00Z",
+    description: "Boshlanish sanasi (ISO format)",
+  })
+  @ApiQuery({
+    name: "endDate",
+    example: "2025-10-14T23:59:59Z",
+    description: "Tugash sanasi (ISO format)",
+  })
+  async findByDateRange(
+    @Query("startDate") startDate: string,
+    @Query("endDate") endDate: string
+  ) {
+    return this.installmentPlansService.findByDateRange(new Date(startDate), new Date(endDate));
   }
 
   @Get(":id")
