@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsNumber,
   IsEnum,
+  Min,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ContractStatus } from "@prisma/client";
@@ -34,27 +35,29 @@ export class CreateContractDto {
   })
   @IsOptional()
   @IsInt({ message: "admin_id butun son (integer) bolishi kerak" })
-  admin_id: number;
+  admin_id?: number;
 
   @ApiProperty({
     example: 3,
     description:
-      "Tolov rejasining (installment plan) ID raqami, agar mavjud bolsa.",
+      "To‘lov rejasining (installment plan) ID raqami, agar mavjud bo‘lsa.",
     required: false,
   })
   @IsOptional()
   @IsInt({ message: "plan_id butun son (integer) bolishi kerak" })
-  plan_id: number;
+  plan_id?: number;
 
   @ApiProperty({
-    example: 4,
+    example: 1200000,
     description:
-      "Trade-in sorovi ID raqami, agar shartnoma trade-in orqali tuzilgan bolsa.",
+      "Trade-in qiymati (so‘mda). Agar shartnoma trade-in asosida bo‘lsa, bu qiymat kiritiladi.",
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: "trade_in_id butun son (integer) bolishi kerak" })
-  trade_in_id?: number;
+  @Type(() => Number)
+  @IsNumber({}, { message: "trade_in_value raqam bolishi kerak" })
+  @Min(0, { message: "trade_in_value manfiy bolmasligi kerak" })
+  trade_in_value?: number;
 
   @ApiProperty({
     description: "Shartnoma holati (`ContractStatus` enum qiymatlari).",
@@ -74,10 +77,7 @@ export class CreateContractDto {
     required: false,
   })
   @IsOptional()
-  @IsDateString(
-    {},
-    { message: "start_date togri sana formatida (ISO) bolishi kerak" }
-  )
+  @IsDateString({}, { message: "start_date ISO formatda bolishi kerak" })
   start_date?: Date;
 
   @ApiProperty({
@@ -86,16 +86,13 @@ export class CreateContractDto {
     required: false,
   })
   @IsOptional()
-  @IsDateString(
-    {},
-    { message: "end_date togri sana formatida (ISO) bolishi kerak" }
-  )
+  @IsDateString({}, { message: "end_date ISO formatda bolishi kerak" })
   end_date?: Date;
 
   @ApiProperty({
     example: false,
     description:
-      "Agar shartnoma trade-in asosida tuzilgan bolsa — `true`, aks holda `false`.",
+      "Agar shartnoma trade-in asosida tuzilgan bo‘lsa — `true`, aks holda `false`.",
     required: false,
   })
   @IsOptional()
