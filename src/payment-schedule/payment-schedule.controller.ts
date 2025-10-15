@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -16,19 +17,26 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { PaymentScheduleService } from "./payment-schedule.service";
 import { CreatePaymentScheduleDto } from "./dto/create-payment-schedule.dto";
 import { UpdatePaymentScheduleDto } from "./dto/update-payment-schedule.dto";
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, UserRole } from "@prisma/client";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { RolesGuard } from "../common/guards/role.guard";
+import { Roles } from "../common/decorators/roles";
 
 @ApiTags("Payment Schedule")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("payment-schedule")
 export class PaymentScheduleController {
   constructor(
     private readonly paymentScheduleService: PaymentScheduleService
   ) {}
 
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.seller)
   @Post()
   @ApiOperation({ summary: "Create a new payment schedule" })
   @ApiBody({ type: CreatePaymentScheduleDto })
@@ -40,6 +48,7 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.create(createPaymentScheduleDto);
   }
 
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @Get()
   @ApiOperation({ summary: "Get all payment schedules" })
   @ApiResponse({ status: 200, description: "List of all payment schedules" })
@@ -47,6 +56,13 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.findAll();
   }
 
+  @Roles(
+    UserRole.admin,
+    UserRole.superadmin,
+    UserRole.support,
+    UserRole.seller,
+    UserRole.buyer
+  )
   @Get(":id")
   @ApiOperation({ summary: "Get payment schedule by ID" })
   @ApiParam({ name: "id", type: Number })
@@ -54,6 +70,7 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.findOne(id);
   }
 
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.seller)
   @Patch(":id")
   @ApiOperation({ summary: "Update a payment schedule" })
   @ApiParam({ name: "id", type: Number })
@@ -65,6 +82,7 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.update(id, updatePaymentScheduleDto);
   }
 
+  @Roles(UserRole.admin, UserRole.superadmin)
   @Delete(":id")
   @ApiOperation({ summary: "Delete a payment schedule" })
   @ApiParam({ name: "id", type: Number })
@@ -72,6 +90,13 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.remove(id);
   }
 
+  @Roles(
+    UserRole.admin,
+    UserRole.superadmin,
+    UserRole.support,
+    UserRole.seller,
+    UserRole.buyer
+  )
   @Get("contract/:contractId")
   @ApiOperation({
     summary: "Get all payment schedules for a specific contract",
@@ -81,6 +106,7 @@ export class PaymentScheduleController {
     return this.paymentScheduleService.getByContractId(contractId);
   }
 
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @Get("contract/:contractId/status")
   @ApiOperation({
     summary: "Get payment schedules for a contract filtered by status",
@@ -97,6 +123,13 @@ export class PaymentScheduleController {
     );
   }
 
+  @Roles(
+    UserRole.admin,
+    UserRole.superadmin,
+    UserRole.support,
+    UserRole.seller,
+    UserRole.buyer
+  )
   @Get("buyer/:buyerId")
   @ApiOperation({
     summary: "Get all payment schedules for a buyer (optional status)",

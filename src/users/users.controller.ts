@@ -9,6 +9,7 @@ import {
   BadRequestException,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -17,21 +18,25 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserRole } from "@prisma/client";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { RolesGuard } from "../common/guards/role.guard";
+import { Roles } from "../common/decorators/roles";
 
 @ApiTags("Users")
+@ApiBearerAuth()
 @Controller("users")
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /** =======================
-   * CREATE USER
-   * ======================= */
   @Post()
+  @Roles(UserRole.admin, UserRole.superadmin)
   @ApiOperation({
     summary: "Create a new user",
     description: "Creates a new user with provided information and role.",
@@ -61,10 +66,8 @@ export class UsersController {
     return safeUser;
   }
 
-  /** =======================
-   * GET ALL USERS
-   * ======================= */
   @Get()
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @ApiOperation({
     summary: "Get all users (with pagination, search, and role filter)",
     description:
@@ -117,10 +120,8 @@ export class UsersController {
     );
   }
 
-  /** =======================
-   * GET USER BY ID
-   * ======================= */
   @Get(":id")
+  @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @ApiOperation({
     summary: "Get user by ID (safe response)",
     description:
@@ -151,10 +152,8 @@ export class UsersController {
     return safeUser;
   }
 
-  /** =======================
-   * UPDATE USER
-   * ======================= */
   @Patch(":id")
+  @Roles(UserRole.admin, UserRole.superadmin)
   @ApiOperation({
     summary: "Update user by ID",
     description: "Updates specific user data based on the provided ID.",
@@ -176,10 +175,8 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  /** =======================
-   * DELETE SINGLE USER
-   * ======================= */
   @Delete(":id")
+  @Roles(UserRole.admin, UserRole.superadmin)
   @ApiOperation({
     summary: "Delete a user by ID",
     description: "Deletes a specific user from the database by ID.",
@@ -196,11 +193,8 @@ export class UsersController {
   async remove(@Param("id", ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }
-
-  /** =======================
-   * BULK DELETE USERS
-   * ======================= */
   @Delete()
+  @Roles(UserRole.admin, UserRole.superadmin)
   @ApiOperation({
     summary: "Delete multiple users (bulk delete)",
     description: "Deletes multiple users at once by providing an array of IDs.",
