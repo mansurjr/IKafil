@@ -8,12 +8,10 @@ import {
 import { Response } from "express";
 import * as bcrypt from "bcrypt";
 import { ConfigService } from "@nestjs/config";
-
 import { UsersService } from "../users/users.service";
 import { JwtService } from "../jwt/jwt.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
-
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SignInDto } from "../users/dto/sign-in.dto";
 import uuid from "uuid";
@@ -28,19 +26,16 @@ export class AuthService {
     private readonly mail: MailService
   ) {}
 
-  // ---------------- REGISTER ----------------
   async register(dto: Omit<CreateUserDto, "role">) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
     if (existing) throw new BadRequestException("Email already registered");
 
     const activationLink = uuid.v4();
     await this.mail.sendMail(dto.email, activationLink);
-
     const user = await this.usersService.createUser(dto, activationLink);
     return { message: "User registered successfully", userId: user.id };
   }
 
-  // ---------------- ACTIVATE ----------------
   async activate(activationLink: string) {
     const user = await this.prisma.users.findFirst({
       where: { activation_link: activationLink },
@@ -51,11 +46,9 @@ export class AuthService {
       where: { id: user.id },
       data: { is_active: true, activation_link: null },
     });
-
     return { message: "Account activated successfully" };
   }
 
-  // ---------------- SIGN IN ----------------
   async signIn(dto: SignInDto, res: Response) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
@@ -79,7 +72,6 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- SEND OTP ----------------
   async sendOtp(emailOrPhone: string) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new NotFoundException("User not found");
@@ -93,11 +85,9 @@ export class AuthService {
     });
 
     if (user.email) await this.mail.sendOtpMail(user.email, otp);
-
     return { message: "OTP sent successfully" };
   }
 
-  // ---------------- VERIFY OTP ----------------
   async verifyOtp(emailOrPhone: string, otp: string, res: Response) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new BadRequestException("Invalid user");
@@ -126,7 +116,6 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- FORGOT PASSWORD ----------------
   async forgetPassword(email: string) {
     const user = await this.usersService.findByEmailOrPhone(email);
     if (!user) throw new BadRequestException("User not found");
@@ -143,7 +132,6 @@ export class AuthService {
     return { message: "Password reset link sent to your email" };
   }
 
-  // ---------------- RESET PASSWORD ----------------
   async resetPassword(
     token: string,
     newPassword: string,
@@ -166,7 +154,6 @@ export class AuthService {
     return { message: "Password reset successfully" };
   }
 
-  // ---------------- REFRESH TOKEN ----------------
   async refresh(res: Response, refreshToken: string) {
     if (!refreshToken) throw new UnauthorizedException("No refresh token");
 
@@ -191,7 +178,6 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- SIGN OUT ----------------
   async signOut(res: Response, refreshToken: string) {
     if (!refreshToken) throw new UnauthorizedException("Not logged in");
 
@@ -202,7 +188,6 @@ export class AuthService {
     return { message: "Signed out successfully" };
   }
 
-  // ---------------- ME ----------------
   async me(userId: number) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException("User not found");
@@ -210,5 +195,25 @@ export class AuthService {
     const { password, token, otp_code, otp_expire, resetLink, ...safeUser } =
       user;
     return safeUser;
+  }
+
+  async resetPasswordWithoutToken(
+    id: number,
+    newPassword: string,
+    confirmNewPassword: string
+  ) {
+    if (newPassword !== confirmNewPassword)
+      throw new BadRequestException("Passwords do not match");
+
+    const user = await this.usersService.findById(id);
+    if (!user) throw new NotFoundException("User not found");
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.users.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return { message: "Password reset successfully" };
   }
 }

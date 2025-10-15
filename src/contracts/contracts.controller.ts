@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
 import { ContractsService } from "./contracts.service";
 import { CreateContractDto } from "./dto/create-contract.dto";
@@ -18,12 +19,18 @@ import {
   ApiParam,
   ApiBody,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { Roles } from "../common/decorators/roles";
+import { adminRoles } from "../types";
+import { RolesGuard } from "../common/guards/role.guard";
 
 @ApiTags("Contracts")
+@Roles(...adminRoles)
 @Controller("contracts")
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get("verify/:id")
   @ApiOperation({ summary: "Verify contract by ID" })
   @ApiParam({ name: "id", type: Number })
@@ -34,6 +41,7 @@ export class ContractsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Create a new contract" })
   @ApiBody({ type: CreateContractDto })
   @ApiResponse({ status: 201, description: "Contract successfully created." })
@@ -43,6 +51,7 @@ export class ContractsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get all contracts" })
   @ApiResponse({ status: 200, description: "List of contracts returned." })
   findAll() {
@@ -50,6 +59,7 @@ export class ContractsController {
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get one contract by ID" })
   @ApiParam({ name: "id", type: Number })
   @ApiResponse({ status: 200, description: "Contract found." })
@@ -59,6 +69,7 @@ export class ContractsController {
   }
 
   @Patch(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Update contract by ID" })
   @ApiParam({ name: "id", type: Number })
   @ApiBody({ type: UpdateContractDto })
@@ -71,7 +82,9 @@ export class ContractsController {
     return this.contractsService.update(id, updateContractDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Delete contract by ID" })
   @ApiParam({ name: "id", type: Number })
   @ApiResponse({ status: 200, description: "Contract deleted successfully." })

@@ -14,6 +14,7 @@ import {
   BadRequestException,
   Query,
   UseGuards,
+  DefaultValuePipe,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import {
@@ -32,6 +33,9 @@ import { Express } from "express";
 import { DeviceSaleStatus } from "@prisma/client";
 import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { RolesGuard } from "../common/guards/role.guard";
+import { Roles } from "../common/decorators/roles";
+import { adminRoles } from "../types";
 
 @ApiTags("Devices")
 @Controller("devices")
@@ -39,6 +43,8 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Post()
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(FilesInterceptor("images"))
   @ApiOperation({ summary: "Create a new device (with optional images)" })
   @ApiConsumes("multipart/form-data")
@@ -53,7 +59,6 @@ export class DevicesController {
     @Body() createDeviceDto: any,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
-    // Parse details JSON if passed as string
     if (typeof createDeviceDto.details === "string") {
       try {
         createDeviceDto.details = JSON.parse(createDeviceDto.details);
@@ -65,6 +70,7 @@ export class DevicesController {
   }
 
   @Get()
+  @UseGuards()
   @ApiOperation({ summary: "Get all devices" })
   @ApiQuery({
     name: "search",
@@ -76,12 +82,13 @@ export class DevicesController {
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   findAll(
     @Query("search") search?: string,
-    @Query("page", ParseIntPipe) page = 1,
-    @Query("limit", ParseIntPipe) limit = 10
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page = 1,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit = 10
   ) {
     return this.devicesService.findAll(search, page, limit);
   }
   @Get("seller/own")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get seller's own devices by status" })
   @ApiParam({ name: "sellerId", type: Number })
   @ApiQuery({
@@ -117,6 +124,8 @@ export class DevicesController {
   }
 
   @Put(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @UseInterceptors(FilesInterceptor("images"))
   @ApiOperation({ summary: "Update device (with optional new images)" })
   @ApiConsumes("multipart/form-data")
@@ -133,7 +142,6 @@ export class DevicesController {
     @Body() updateDeviceDto: UpdateDeviceDto,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
-    // Parse details JSON if passed as string
     if (typeof updateDeviceDto.details === "string") {
       try {
         updateDeviceDto.details = JSON.parse(updateDeviceDto.details);
@@ -145,6 +153,8 @@ export class DevicesController {
   }
 
   @Delete(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Delete a device by ID" })
   @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiResponse({ status: 200, description: "Device successfully deleted." })

@@ -3,13 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { CreateContractDto } from "./dto/create-contract.dto";
-import { UpdateContractDto } from "./dto/update-contract.dto";
 import { PrismaService } from "../prisma/prisma.service";
-import { PrismaClient } from "@prisma/client/extension";
-import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 import { DevicesService } from "../devices/devices.service";
 import { InstallmentPlansService } from "../installment-plans/installment-plans.service";
+import { CreateContractDto } from "./dto/create-contract.dto";
+import { UpdateContractDto } from "./dto/update-contract.dto";
+import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 
 @Injectable()
 export class ContractsService {
@@ -20,7 +19,7 @@ export class ContractsService {
   ) {}
 
   private async validateEntity(
-    model: keyof PrismaClient,
+    model: keyof PrismaService,
     id: number,
     entityName: string
   ) {
@@ -32,37 +31,45 @@ export class ContractsService {
   }
 
   async create(dto: CreateContractDto) {
-    const { buyer_id, device_id, admin_id, plan_id, trade_in_id } = dto;
+    const {
+      buyer_id,
+      device_id,
+      admin_id,
+      plan_id,
+      trade_in_value,
+      is_trade_in,
+    } = dto;
 
     await this.validateEntity("users", buyer_id, "Buyer");
     await this.validateEntity("devices", device_id, "Device");
     if (admin_id) await this.validateEntity("users", admin_id, "Admin");
     if (plan_id)
       await this.validateEntity("installment_plans", plan_id, "Plan");
-    if (trade_in_id)
-      await this.validateEntity("trade_in_requests", trade_in_id, "Trade-in");
 
     const device = await this.deviceService.findOne(device_id);
     const plan = await this.planService.findOne(plan_id!);
 
-    if (!device || !plan) {
-      throw new BadRequestException("Device yoki Plan topilmadi");
-    }
-
     const base_price = Number(device.base_price);
     const months = Number(plan.months);
     const percent = Number(plan.percent);
-    let initial_payment = 0;
-    let total_price = base_price;
 
-    // 🧮 Hisoblash formulalari
-    if (!dto.is_trade_in) {
-      total_price = base_price * (1 + percent / 100);
-      initial_payment = total_price / (months + 1);
+    let adjusted_price = base_price;
+    if (is_trade_in && trade_in_value && trade_in_value > 0) {
+      adjusted_price -= trade_in_value;
+      if (adjusted_price < 0) adjusted_price = 0;
     }
 
-    const monthly_payment = total_price / months;
+    const total_price = adjusted_price * (1 + percent / 100);
+
+    const initial_payment = is_trade_in ? 0 : total_price * 0.2;
+
     const remaining_balance = total_price - initial_payment;
+    const monthly_payment =
+      months > 0 ? remaining_balance / months : remaining_balance;
+
+    const startDate = new Date(dto.start_date ?? new Date());
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
 
     return this.prisma.$transaction(async (tx) => {
       const contract = await tx.contracts.create({
@@ -72,26 +79,19 @@ export class ContractsService {
           admin_id,
           plan_id,
           total_price,
-          monthly_payment,
-          duration_months: months,
-          remaining_balance,
           initial_payment,
+          monthly_payment,
+          remaining_balance,
+          duration_months: months,
           status: dto.status ?? "active",
-          start_date: dto.start_date ?? new Date(),
-          end_date:
-            dto.end_date ??
-            new Date(
-              new Date(dto.start_date ?? new Date()).setMonth(
-                new Date(dto.start_date ?? new Date()).getMonth() + months
-              )
-            ),
-          is_trade_in: dto.is_trade_in ?? false,
+          start_date: startDate,
+          end_date: endDate,
+          is_trade_in: is_trade_in ?? false,
+          trade_in_value: trade_in_value ?? 0,
         },
       });
 
-      const startDate = new Date(dto.start_date ?? new Date());
       const schedules: Prisma.payment_scheduleCreateManyInput[] = [];
-
       for (let i = 0; i < months; i++) {
         const dueDate = new Date(startDate);
         dueDate.setMonth(dueDate.getMonth() + (i + 1));
@@ -103,36 +103,36 @@ export class ContractsService {
           status: PaymentStatus.pending,
         });
       }
-
       await tx.payment_schedule.createMany({ data: schedules });
 
-      const paymentsData: Prisma.paymentsCreateManyInput[] = [
-        {
-          contract_id: contract.id,
-          amount: initial_payment,
-          method: PaymentMethod.cash,
-          status: PaymentStatus.paid,
-          payment_date: new Date(),
-        },
-        ...schedules.map((s) => ({
-          contract_id: contract.id,
-          amount: monthly_payment,
-          method: PaymentMethod.cash,
-          status: PaymentStatus.pending,
-          payment_date: s.due_date,
-        })),
-      ];
+      if (!is_trade_in) {
+        await tx.payments.create({
+          data: {
+            contract_id: contract.id,
+            amount: initial_payment,
+            method: PaymentMethod.cash,
+            status: PaymentStatus.paid,
+            payment_date: new Date(),
+          },
+        });
+      }
 
-      await tx.payments.createMany({ data: paymentsData });
+      await tx.devices.update({
+        where: { id: device_id },
+        data: { status: "sold" },
+      });
 
       return {
-        message: "✅ Contract created successfully with initial payment",
+        message: "✅ Contract created successfully",
         contract_id: contract.id,
         total_price,
+        adjusted_price,
         initial_payment,
         monthly_payment,
         months,
         percent,
+        trade_in_applied: is_trade_in ?? false,
+        trade_in_value: trade_in_value ?? 0,
       };
     });
   }
@@ -163,33 +163,26 @@ export class ContractsService {
         payments: true,
       },
     });
-
-    if (!contract) {
+    if (!contract)
       throw new NotFoundException(`Contract with ID ${id} not found`);
-    }
-
     return contract;
   }
 
   async update(id: number, dto: UpdateContractDto) {
     const existing = await this.prisma.contracts.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing)
       throw new NotFoundException(`Contract with ID ${id} not found`);
-    }
 
     return this.prisma.contracts.update({
       where: { id },
-      data: {
-        ...dto,
-      },
+      data: dto,
     });
   }
 
   async remove(id: number) {
     const existing = await this.prisma.contracts.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing)
       throw new NotFoundException(`Contract with ID ${id} not found`);
-    }
 
     await this.prisma.contracts.delete({ where: { id } });
     return { message: `Contract with ID ${id} deleted successfully` };

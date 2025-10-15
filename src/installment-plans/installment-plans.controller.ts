@@ -8,12 +8,17 @@ import {
   Delete,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from "@nestjs/swagger";
 import { InstallmentPlansService } from "./installment-plans.service";
 import { CreateInstallmentPlanDto } from "./dto/create-installment-plan.dto";
 import { UpdateInstallmentPlanDto } from "./dto/update-installment-plan.dto";
 import { QueryInstallmentPlanDto } from "./dto/query-installment-plan.dto";
+import { Roles } from "../common/decorators/roles";
+import { adminRoles } from "../types";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { RolesGuard } from "../common/guards/role.guard";
 
 @ApiTags("Installment Plans")
 @Controller("installment-plans")
@@ -23,6 +28,8 @@ export class InstallmentPlansController {
   ) {}
 
   @Post()
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary: "Create new installment plan (Only Admin)",
     description: "Creates a new installment plan with given details.",
@@ -101,6 +108,8 @@ export class InstallmentPlansController {
   }
 
   @Patch(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary: "Update installment plan through ID (Only Admin)",
     description: "Updates installment plan details by given ID.",
@@ -122,6 +131,8 @@ export class InstallmentPlansController {
   }
 
   @Delete(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary: "Delete installment plan through ID (Only Admin)",
     description: "Deletes installment plan by its ID.",
