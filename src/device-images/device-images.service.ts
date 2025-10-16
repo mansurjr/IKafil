@@ -22,8 +22,13 @@ export class DeviceImagesService {
       where: { id: createDeviceImageDto.device_id },
     });
 
-    if (!device) throw new NotFoundException("Device not found");
-    if (!file) throw new BadRequestException("Image file is required");
+    if (!device) {
+      throw new NotFoundException("Device not found");
+    }
+
+    if (!file) {
+      throw new BadRequestException("Image file is required");
+    }
 
     const filename = `${uuid()}${path.extname(file.originalname)}`;
     const uploadDir = path.join(__dirname, "../../uploads/devices");
@@ -32,9 +37,21 @@ export class DeviceImagesService {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
+    const imageUrl = `/uploads/devices/${filename}`;
+
+    const exists = await this.prisma.device_images.findFirst({
+      where: {
+        device_id: createDeviceImageDto.device_id,
+        url: imageUrl,
+      },
+    });
+
+    if (exists) {
+      throw new Error("This image already exists for this device.");
+    }
+
     fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
 
-    const imageUrl = `/uploads/devices/${filename}`;
     if (createDeviceImageDto.is_primary) {
       await this.prisma.device_images.updateMany({
         where: { device_id: createDeviceImageDto.device_id },
@@ -51,30 +68,35 @@ export class DeviceImagesService {
     });
   }
 
-
   async getDeviceImagesById(deviceId: number) {
     const device = await this.prisma.devices.findUnique({
       where: { id: deviceId },
     });
 
-    if (!device) throw new NotFoundException("Device not found");
+    if (!device) {
+      throw new NotFoundException("Device not found");
+    }
 
     return this.prisma.device_images.findMany({
       where: { device_id: deviceId },
     });
   }
 
-
   async update(id: number, updateDeviceImageDto: UpdateDeviceImageDto) {
     const deviceImage = await this.prisma.device_images.findUnique({
       where: { id },
     });
 
-    if (!deviceImage) throw new NotFoundException("Device image not found");
+    if (!deviceImage) {
+      throw new NotFoundException("Device image not found");
+    }
 
     if (updateDeviceImageDto.is_primary) {
       await this.prisma.device_images.updateMany({
-        where: { device_id: deviceImage.device_id, NOT: { id } },
+        where: {
+          device_id: deviceImage.device_id,
+          NOT: { id },
+        },
         data: { is_primary: false },
       });
     }
@@ -85,13 +107,14 @@ export class DeviceImagesService {
     });
   }
 
-
   async remove(id: number) {
     const deviceImage = await this.prisma.device_images.findUnique({
       where: { id },
     });
 
-    if (!deviceImage) throw new NotFoundException("Device image not found!");
+    if (!deviceImage) {
+      throw new NotFoundException("Device image not found!");
+    }
 
     try {
       const filePath = path.join(
@@ -109,7 +132,6 @@ export class DeviceImagesService {
     await this.prisma.device_images.delete({ where: { id } });
     return { message: "Device image deleted successfully!" };
   }
-
 
   async getTopImageDevices(limit = 5) {
     const allDevices = await this.prisma.devices.findMany({
@@ -131,7 +153,6 @@ export class DeviceImagesService {
       images: d.device_images,
     }));
   }
-  
 
   async findDevicesWithoutImages() {
     const devices = await this.prisma.devices.findMany({
@@ -139,5 +160,78 @@ export class DeviceImagesService {
     });
 
     return devices.filter((d) => d.device_images.length === 0);
+  }
+
+  async getTopImageGroups(limit = 5) {
+    const devices = await this.prisma.device_images.groupBy({
+      by: ["device_id"],
+      _count: { device_id: true },
+      orderBy: { _count: { device_id: "desc" } },
+      take: limit,
+    });
+
+    const results: {
+      device_id: number;
+      count: number;
+      images: {
+        id: number;
+        device_id: number;
+        url: string;
+        is_primary: boolean | null;
+        created_at: Date | null;
+      }[];
+    }[] = [];
+
+    for (const d of devices) {
+      const images = await this.prisma.device_images.findMany({
+        where: { device_id: d.device_id },
+      });
+
+      results.push({
+        device_id: d.device_id,
+        count: d._count.device_id,
+        images,
+      });
+    }
+
+    return results;
+  }
+
+  async getDevicesWithoutPrimaryImage() {
+    const allDevices = await this.prisma.devices.findMany({
+      select: { id: true },
+    });
+
+    const devicesWithPrimary = await this.prisma.device_images.findMany({
+      where: { is_primary: true },
+      select: { device_id: true },
+    });
+
+    const primaryIds = devicesWithPrimary.map((img) => img.device_id);
+
+    const withoutPrimary = allDevices.filter(
+      (device: any) => !primaryIds.includes(device.id)
+    );
+
+    return withoutPrimary.map((d: any) => d.id);
+  }
+
+  async findBrokenImageFiles() {
+    const images = await this.prisma.device_images.findMany();
+    const broken: typeof images = [];
+
+    for (const img of images) {
+      const filePath = path.join(
+        __dirname,
+        "../../uploads/devices",
+        path.basename(img.url)
+      );
+
+      if (!fs.existsSync(filePath)) {
+        broken.push(img);
+      }
+    }
+
+    return broken;
   }
 }
