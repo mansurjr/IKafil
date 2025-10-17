@@ -49,10 +49,12 @@ export class AuthService {
     return { message: "Account activated successfully" };
   }
 
-  async signIn(dto: SignInDto, res: Response) {
+  async signIn(dto: SignInDto, res: Response, admin?: boolean) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
-
+    if ((admin && user?.role !== "admin") || user?.role !== "superadmin") {
+      throw new ForbiddenException("Invalid credentials");
+    }
     const valid = await bcrypt.compare(dto.password, user.password!);
     if (!valid) throw new UnauthorizedException("Invalid credentials");
 
@@ -64,8 +66,6 @@ export class AuthService {
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      sameSite: "strict",
-      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 

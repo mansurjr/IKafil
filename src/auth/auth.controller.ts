@@ -12,11 +12,11 @@ import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SignInDto } from "../users/dto/sign-in.dto";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { JwtRefresh } from "../common/guards/refreshToken.guard";
 import {
   GetCurrentUser,
   GetCurrentUser as GetUser,
 } from "../common/decorators/getCurrentUser";
-import { JwtRefresh } from "../common/guards/refreshToken.guard";
 import {
   ApiTags,
   ApiOperation,
@@ -52,7 +52,19 @@ export class AuthController {
     @Body() dto: SignInDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    return this.authService.signIn(dto, res);
+    return this.authService.signIn(dto, res, false);
+  }
+
+  @Post("signin/admin")
+  @ApiOperation({ summary: "Sign in as admin" })
+  @ApiBody({ type: SignInDto })
+  @ApiResponse({ status: 200, description: "Admin login successful" })
+  @ApiResponse({ status: 401, description: "Invalid email or password" })
+  async signInAdmin(
+    @Body() dto: SignInDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    return this.authService.signIn(dto, res, true);
   }
 
   @Post("send-otp")
@@ -184,11 +196,7 @@ export class AuthController {
   @ApiResponse({ status: 400, description: "Passwords do not match" })
   @ApiResponse({ status: 404, description: "User not found" })
   async resetPasswordWithoutToken(
-    @Body()
-    body: {
-      newPassword: string;
-      confirmNewPassword: string;
-    },
+    @Body() body: { newPassword: string; confirmNewPassword: string },
     @GetCurrentUser("id") id: number
   ) {
     return this.authService.resetPasswordWithoutToken(
