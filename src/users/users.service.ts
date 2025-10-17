@@ -2,12 +2,13 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import * as bcrypt from "bcrypt";
-import { Prisma, UserRole, users } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { MailService } from "../mail/mail.service";
 import { v4 as uuid } from "uuid";
 
@@ -15,10 +16,29 @@ import { v4 as uuid } from "uuid";
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private mailService: MailService
+    private readonly mailService: MailService
   ) {}
 
-  async createUser(dto: CreateUserDto, activationLink?: string) {
+  private async _checkSuperAdmin(currentUserId?: number) {
+    if (!currentUserId)
+      throw new ForbiddenException("Action not allowed without current user");
+    const superadmin = await this.prisma.users.findUnique({
+      where: { id: currentUserId },
+    });
+    if (!superadmin || superadmin.role !== UserRole.superadmin) {
+      throw new ForbiddenException("Only superadmin can perform this action");
+    }
+  }
+
+  async createUser(
+    dto: CreateUserDto,
+    activationLink?: string,
+    currentUserId?: number
+  ) {
+    if (dto.role && dto.role !== UserRole.buyer) {
+      await this._checkSuperAdmin(currentUserId);
+    }
+
     let username = dto.username;
     let password = dto.password;
 
@@ -31,30 +51,27 @@ export class UsersService {
       username = `${dto.role}_${uuid().slice(0, 8)}`;
       password = Math.random().toString(36).slice(-8);
     } else {
-      if (dto.password !== dto.confirmPassword) {
-        throw new BadRequestException("Passwords do not match");
-      }
-      if (!password || dto.confirmPassword || !username) {
+      if (!password || !dto.confirmPassword || !username)
         throw new BadRequestException(
-          "Password and confirm password are required for buyers"
+          "Username and password are required for buyers"
         );
-      }
+      if (password !== dto.confirmPassword)
+        throw new BadRequestException("Passwords do not match");
     }
 
     const existingUser = await this.prisma.users.findFirst({
       where: { OR: [{ email: dto.email }, { username }] },
     });
-    if (existingUser) {
+    if (existingUser)
       throw new BadRequestException(
         "User with this email or username already exists"
       );
-    }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = await this.prisma.users.create({
       data: {
-        username: username ? username : "",
+        username,
         email: dto.email,
         full_name: dto.full_name,
         phone: dto.phone || null,
@@ -75,41 +92,31 @@ export class UsersService {
 
     return this._excludePassword(user);
   }
-  /** =======================
-   * UPDATE TOKEN
-   * ======================= */
+
   async updateToken(userId: number, token: string | null) {
     const hashedToken = token ? await bcrypt.hash(token, 10) : null;
-
     const user = await this.prisma.users.update({
       where: { id: userId },
       data: { token: hashedToken },
     });
-
     return { id: user.id };
   }
 
-  /** =======================
-   * FIND BY ID
-   * ======================= */
   async findById(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id },
       include: { region: { select: { name: true } }, devices: true },
     });
-
     if (!user) throw new NotFoundException("User not found");
     return this._excludePassword(user);
   }
 
-  /** =======================
-   * FIND ALL USERS WITH PAGINATION AND SEARCH
-   * ======================= */
   async findAll(
-    page: number = 1,
-    limit: number = 10,
-    search: string = "",
-    role?: UserRole
+    page = 1,
+    limit = 10,
+    search = "",
+    role?: UserRole,
+    currentUserId?: number
   ) {
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
@@ -118,15 +125,26 @@ export class UsersService {
 
     const where: any = {};
 
+    where.AND = [
+      {
+        OR: [{ role: { not: UserRole.superadmin } }, { id: currentUserId }],
+      },
+    ];
+
     if (role) {
       where.role = role;
     }
 
     if (search) {
-      where.OR = [
-        { email: { contains: search, mode: "insensitive" } },
-        { username: { contains: search, mode: "insensitive" } },
-        { phone: { contains: search, mode: "insensitive" } },
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { email: { contains: search, mode: "insensitive" } },
+            { username: { contains: search, mode: "insensitive" } },
+            { phone: { contains: search, mode: "insensitive" } },
+          ],
+        },
       ];
     }
 
@@ -160,91 +178,101 @@ export class UsersService {
     };
   }
 
-  /** =======================
-   * FIND BY EMAIL OR PHONE
-   * ======================= */
   async findByEmailOrPhone(value: string) {
-    const user = await this.prisma.users.findFirst({
-      where: {
-        OR: [{ email: value }, { phone: value }],
-      },
+    return this.prisma.users.findFirst({
+      where: { OR: [{ email: value }, { phone: value }] },
     });
-    return user;
   }
 
-  /** =======================
-   * UPDATE USER
-   * ======================= */
-  async update(id: number, dto: UpdateUserDto) {
+  async update(id: number, dto: UpdateUserDto, currentUserId?: number) {
+    if (!currentUserId)
+      throw new ForbiddenException("Current user is required");
+
+    const currentUser = await this.prisma.users.findUnique({
+      where: { id: currentUserId },
+    });
+    if (!currentUser) throw new ForbiddenException("Current user not found");
+
     const user = await this.prisma.users.findUnique({ where: { id } });
     if (!user) throw new NotFoundException("User not found");
+
+    if (currentUser.role === UserRole.admin) {
+      if (user.role === UserRole.admin || user.role === UserRole.superadmin) {
+        throw new ForbiddenException(
+          "Admins cannot update other admins or superadmins"
+        );
+      }
+    } else if (currentUser.role === UserRole.superadmin) {
+    } else {
+      if (currentUserId !== id) {
+        throw new ForbiddenException("You can update only your own account");
+      }
+    }
+
+    if (dto.role && dto.role !== user.role) {
+      await this._checkSuperAdmin(currentUserId);
+    }
+
     if (dto.region_id) {
       const region = await this.prisma.region.findUnique({
         where: { id: dto.region_id },
       });
       if (!region) throw new NotFoundException("Region not found");
     }
+
     if (dto.username) {
       const existingUser = await this.prisma.users.findFirst({
         where: { username: dto.username },
       });
-      if (existingUser && existingUser.id !== id) {
+      if (existingUser && existingUser.id !== id)
         throw new BadRequestException("Username already exists");
-      }
     }
-
-    const updateData: UpdateUserDto = {
-      username: dto.username,
-      full_name: dto.full_name,
-      phone: dto.phone,
-      role: dto.role,
-      region_id: dto.region_id,
-      isActive: dto.isActive,
-    };
 
     const updatedUser = await this.prisma.users.update({
       where: { id },
-      data: updateData,
+      data: {
+        username: dto.username,
+        full_name: dto.full_name,
+        phone: dto.phone,
+        role: dto.role,
+        region_id: dto.region_id,
+        is_active: dto.isActive,
+      },
     });
-    const {
-      password,
-      token,
-      activation_link,
-      otp_code,
-      otp_expire,
-      resetLink,
-      region_id,
-      ...safeUser
-    } = this._excludePassword(updatedUser);
-    return safeUser;
+
+    return this._excludePassword(updatedUser);
   }
 
-  /** =======================
-   * DELETE SINGLE USER
-   * ======================= */
-  async remove(id: number) {
+  async remove(id: number, currentUserId?: number) {
     const user = await this.prisma.users.findUnique({ where: { id } });
     if (!user) throw new NotFoundException("User not found");
 
-    this.prisma.users.delete({ where: { id } });
+    if (user.role === UserRole.admin || user.role === UserRole.superadmin) {
+      await this._checkSuperAdmin(currentUserId);
+    }
+
+    await this.prisma.users.delete({ where: { id } });
     return { status: "ok" };
   }
 
-  /** =======================
-   * BULK DELETE USERS
-   * ======================= */
-  async bulkRemove(ids: number[]) {
+  async bulkRemove(ids: number[], currentUserId?: number) {
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException("Please provide at least one user ID");
     }
 
     const existingUsers = await this.prisma.users.findMany({
       where: { id: { in: ids } },
-      select: { id: true },
     });
 
     if (existingUsers.length === 0) {
       throw new NotFoundException("No users found for provided IDs");
+    }
+
+    const restrictedUsers = existingUsers.filter(
+      (u) => u.role === UserRole.admin || u.role === UserRole.superadmin
+    );
+    if (restrictedUsers.length > 0) {
+      await this._checkSuperAdmin(currentUserId);
     }
 
     await this.prisma.users.deleteMany({
@@ -254,9 +282,6 @@ export class UsersService {
     return { deletedCount: existingUsers.length, status: "ok" };
   }
 
-  /** =======================
-   * HELPER: EXCLUDE PASSWORD
-   * ======================= */
   private _excludePassword(user: any) {
     const { password, ...rest } = user;
     return rest;
