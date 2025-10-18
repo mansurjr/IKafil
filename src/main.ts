@@ -11,6 +11,11 @@ async function bootstrap() {
 
   const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
+  app.enableCors({
+    origin: ["http://localhost:5173"],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+  })
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -20,7 +25,7 @@ async function bootstrap() {
       transform: true,
       stopAtFirstError: false,
       exceptionFactory: (errors) => {
-        const formattedErrors = errors.map((err) => ({
+        const formattedErrors = errors.map((err) => ({ 
           field: err.property,
           errors: Object.values(err.constraints || {}),
         }));

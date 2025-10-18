@@ -62,6 +62,7 @@ export class DeviceImagesController {
     return this.deviceImagesService.create(dto, file);
   }
 
+
   @Get(":deviceId")
   @ApiOperation({ summary: "Get all images of a specific device" })
   @ApiParam({ name: "deviceId", type: Number, required: true, example: 1 })
