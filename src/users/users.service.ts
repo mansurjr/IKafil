@@ -123,29 +123,27 @@ export class UsersService {
 
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = {
+      AND: [
+        { id: { not: currentUserId } },
+        { role: { not: UserRole.superadmin } },
+      ],
+    };
 
-    where.AND = [
-      {
-        OR: [{ role: { not: UserRole.superadmin } }, { id: currentUserId }],
-      },
-    ];
-
+    
     if (role) {
-      where.role = role;
+      where.AND.push({ role });
     }
 
+    
     if (search) {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: [
-            { email: { contains: search, mode: "insensitive" } },
-            { username: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search, mode: "insensitive" } },
-          ],
-        },
-      ];
+      where.AND.push({
+        OR: [
+          { email: { contains: search, mode: "insensitive" } },
+          { username: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search, mode: "insensitive" } },
+        ],
+      });
     }
 
     const [users, total] = await Promise.all([
