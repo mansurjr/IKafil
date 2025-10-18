@@ -4,7 +4,6 @@ import { UpdateInstallmentPlanDto } from "./dto/update-installment-plan.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import { QueryInstallmentPlanDto } from "./dto/query-installment-plan.dto";
 
-
 @Injectable()
 export class InstallmentPlansService {
   constructor(private readonly prisma: PrismaService) {}
@@ -15,34 +14,8 @@ export class InstallmentPlansService {
     });
   }
 
-  async findAll(query: QueryInstallmentPlanDto) {
-    const {
-      page = 1,
-      limit = 10,
-      sortBy = "months",
-      sortOrder = "asc",
-    } = query;
-
-    const skip = (page - 1) * limit;
-
-    return this.prisma.installment_plans.findMany({
-      where: {
-        months: query.months,
-        percent: {
-          gte: query.percent_gte,
-          lte: query.percent_lte,
-        },
-        first_payment_percent: {
-          gte: query.first_payment_percent_gte,
-          lte: query.first_payment_percent_lte,
-        },
-      },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-      skip,
-      take: limit,
-    });
+  async findAll() {
+    return this.prisma.installment_plans.findMany();
   }
 
   async findOne(id: number) {
@@ -96,6 +69,50 @@ export class InstallmentPlansService {
         },
       },
       orderBy: { created_at: "desc" },
+    });
+  }
+
+  async findByPercentRange(min: number, max: number) {
+    return this.prisma.installment_plans.findMany({
+      where: { percent: { gte: min, lte: max } },
+      orderBy: { percent: "asc" },
+    });
+  }
+
+  async findByFirstPaymentPercentRange(min: number, max: number) {
+    return this.prisma.installment_plans.findMany({
+      where: { first_payment_percent: { gte: min, lte: max } },
+    });
+  }
+
+  async findWithContractsCount() {
+    const plans = await this.prisma.installment_plans.findMany({
+      include: { contracts: true },
+    });
+
+    return plans.map((p) => ({
+      ...p,
+      contractCount: p.contracts.length,
+    }));
+  }
+
+  async findActivePlans() {
+    return this.prisma.installment_plans.findMany({
+      where: { contracts: { some: { status: "active" } } },
+      include: { contracts: true },
+    });
+  }
+
+  async search(keyword: string) {
+    const value = parseFloat(keyword);
+    return this.prisma.installment_plans.findMany({
+      where: {
+        OR: [
+          { months: isNaN(value) ? undefined : value },
+          { percent: isNaN(value) ? undefined : value },
+          { first_payment_percent: isNaN(value) ? undefined : value },
+        ],
+      },
     });
   }
 }
