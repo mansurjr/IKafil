@@ -105,7 +105,7 @@ export class UsersService {
   async findById(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id },
-      include: { region: { select: { name: true } }, devices: true },
+      include: { region: { select: { name: true } } },
     });
     if (!user) throw new NotFoundException("User not found");
     return this._excludePassword(user);
