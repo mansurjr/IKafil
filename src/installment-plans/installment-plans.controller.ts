@@ -21,7 +21,6 @@ import {
 import { InstallmentPlansService } from "./installment-plans.service";
 import { CreateInstallmentPlanDto } from "./dto/create-installment-plan.dto";
 import { UpdateInstallmentPlanDto } from "./dto/update-installment-plan.dto";
-import { QueryInstallmentPlanDto } from "./dto/query-installment-plan.dto";
 import { Roles } from "../common/decorators/roles";
 import { adminRoles } from "../types";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
@@ -47,8 +46,8 @@ export class InstallmentPlansController {
   @Get()
   @ApiOperation({ summary: "Get all installment plans" })
   @ApiResponse({ status: 200, description: "List of plans" })
-  findAll(@Query() query: QueryInstallmentPlanDto) {
-    return this.installmentPlansService.findAll(query);
+  findAll() {
+    return this.installmentPlansService.findAll();
   }
 
   @Get("top")
@@ -114,13 +113,6 @@ export class InstallmentPlansController {
   @ApiQuery({ name: "q", example: "10" })
   search(@Query("q") q: string) {
     return this.installmentPlansService.search(q);
-  }
-
-  @Get(":id")
-  @ApiOperation({ summary: "Get plan by ID" })
-  @ApiParam({ name: "id", example: 1 })
-  findOne(@Param("id", ParseIntPipe) id: number) {
-    return this.installmentPlansService.findOne(id);
   }
 
   @Patch(":id")

@@ -14,34 +14,8 @@ export class InstallmentPlansService {
     });
   }
 
-  async findAll(query: QueryInstallmentPlanDto) {
-    const {
-      page = 1,
-      limit = 10,
-      sortBy = "months",
-      sortOrder = "asc",
-    } = query;
-
-    const skip = (page - 1) * limit;
-
-    return this.prisma.installment_plans.findMany({
-      where: {
-        months: query.months,
-        percent: {
-          gte: query.percent_gte,
-          lte: query.percent_lte,
-        },
-        first_payment_percent: {
-          gte: query.first_payment_percent_gte,
-          lte: query.first_payment_percent_lte,
-        },
-      },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-      skip,
-      take: limit,
-    });
+  async findAll() {
+    return this.prisma.installment_plans.findMany();
   }
 
   async findOne(id: number) {
