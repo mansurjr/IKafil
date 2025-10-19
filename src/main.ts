@@ -12,6 +12,10 @@ async function bootstrap() {
   const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
 
+  app.enableCors({
+    origin:["http://localhost:3000"]
+  })
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
