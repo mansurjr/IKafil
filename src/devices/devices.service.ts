@@ -79,6 +79,9 @@ export class DevicesService {
     return this.prisma.devices.create({
       data: {
         ...deviceData,
+        seller_id: Number(deviceData.seller_id),
+        region_id: Number(deviceData.region_id),
+        is_active: Boolean(deviceData.is_active),
         details: details
           ? {
               create: details as Prisma.device_detailsCreateWithoutDeviceInput,
@@ -210,14 +213,17 @@ export class DevicesService {
       where: { id },
       data: {
         ...deviceData,
-        details: details
+        seller_id: Number(deviceData.seller_id),
+        region_id: Number(deviceData.region_id),
+        is_active: Boolean(deviceData.is_active),
+        details: details  
           ? {
               upsert: {
                 create:
                   details as Prisma.device_detailsCreateWithoutDeviceInput,
                 update:
                   details as Prisma.device_detailsCreateWithoutDeviceInput,
-              },
+              },  
             }
           : undefined,
         device_images:
