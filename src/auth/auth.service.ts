@@ -49,23 +49,26 @@ export class AuthService {
     return { message: "Account activated successfully" };
   }
 
-  async signIn(dto: SignInDto, res: Response) {
+  async signIn(dto: SignInDto, res: Response, admin?: boolean) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
+
+    if (admin && user.role !== "admin" && user.role !== "superadmin") {
+      throw new ForbiddenException("Access denied");
+    }
 
     const valid = await bcrypt.compare(dto.password, user.password!);
     if (!valid) throw new UnauthorizedException("Invalid credentials");
 
-    if (!user.is_active)
+    if (!user.is_active) {
       throw new ForbiddenException("Please activate your account first");
+    }
 
     const tokens = await this.jwtService.generateTokens(user);
     await this.usersService.updateToken(user.id, tokens.refreshToken);
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      sameSite: "strict",
-      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -178,13 +181,32 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  async signOut(res: Response, refreshToken: string) {
+  async signOut(res: Response, refreshToken: string, accessToken?: string) {
     if (!refreshToken) throw new UnauthorizedException("Not logged in");
 
-    const payload = this.jwtService.decodeToken(refreshToken);
-    if (payload?.id) await this.usersService.updateToken(payload.id, null);
+    const refreshPayload = this.jwtService.decodeToken(refreshToken);
+    if (!refreshPayload?.id) throw new UnauthorizedException("Invalid token");
 
-    res.clearCookie("refreshToken");
+    const userId = refreshPayload.id;
+
+    await this.usersService.updateToken(userId, null);
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    if (accessToken) {
+      await this.prisma.revokedToken.create({
+        data: {
+          token: accessToken,
+          userId,
+          expiresAt,
+        },
+      });
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+    });
+
     return { message: "Signed out successfully" };
   }
 
@@ -192,8 +214,17 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException("User not found");
 
-    const { password, token, otp_code, otp_expire, resetLink, ...safeUser } =
-      user;
+    const {
+      password,
+      token,
+      otp_code,
+      otp_expire,
+      resetLink,
+      is_active,
+      telegramId,
+      role,
+      ...safeUser
+    } = user;
     return safeUser;
   }
 

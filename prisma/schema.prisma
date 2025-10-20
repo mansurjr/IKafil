@@ -85,6 +85,7 @@ model users {
   contracts_buyer contracts[]     @relation("BuyerContracts")
   contracts_admin contracts[]     @relation("AdminContracts")
   notifications   notifications[]
+  RevokedToken    RevokedToken[]
 }
 
 model installment_plans {
@@ -156,6 +157,17 @@ model carts {
   device devices @relation(fields: [device_id], references: [id])
 
   @@unique([user_id, device_id])
+}
+
+model RevokedToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int?
+  user      users?   @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model contracts {

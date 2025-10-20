@@ -26,13 +26,12 @@ import { Roles } from "../common/decorators/roles";
 import { UserRole } from "@prisma/client";
 
 @ApiTags("Regions")
-@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("regions")
 export class RegionController {
   constructor(private readonly regionService: RegionService) {}
 
-  // 🟢 CREATE REGION — faqat admin yoki superadmin
+  @ApiBearerAuth()
   @Roles(UserRole.admin, UserRole.superadmin)
   @Post()
   @ApiOperation({
@@ -46,7 +45,6 @@ export class RegionController {
     return this.regionService.create(createRegionDto);
   }
 
-  // 🟢 GET ALL REGIONS — barcha avtorizatsiyadan o‘tgan foydalanuvchilar ko‘ra oladi
   @Roles(
     UserRole.admin,
     UserRole.superadmin,
@@ -67,7 +65,6 @@ export class RegionController {
     return this.regionService.findAll();
   }
 
-  // 🟡 UPDATE REGION — faqat admin yoki superadmin
   @Roles(UserRole.admin, UserRole.superadmin)
   @Patch(":id")
   @ApiOperation({
@@ -85,7 +82,6 @@ export class RegionController {
     return this.regionService.update(id, updateRegionDto);
   }
 
-  // 🔴 DELETE REGION — faqat superadmin
   @Roles(UserRole.superadmin)
   @Delete(":id")
   @ApiOperation({
