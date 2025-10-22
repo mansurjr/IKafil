@@ -32,12 +32,10 @@ import { Roles } from "../common/decorators/roles";
 import { adminRoles } from "../types";
 
 @ApiTags("Device Images")
-@Roles(...adminRoles)
-@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 @Controller("device-images")
 export class DeviceImagesController {
-  constructor(private readonly deviceImagesService: DeviceImagesService) {}
+  constructor(private readonly deviceImagesService: DeviceImagesService) { }
 
   @Post()
   @UseInterceptors(FileInterceptor("file"))
@@ -63,6 +61,7 @@ export class DeviceImagesController {
   }
 
 
+ 
   @Get(":deviceId")
   @ApiOperation({ summary: "Get all images of a specific device" })
   @ApiParam({ name: "deviceId", type: Number, required: true, example: 1 })
@@ -70,6 +69,9 @@ export class DeviceImagesController {
     return this.deviceImagesService.getDeviceImagesById(deviceId);
   }
 
+  @ApiBearerAuth()
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(":id")
   @ApiOperation({ summary: "Update device image details" })
   @ApiParam({ name: "id", type: Number, required: true, example: 1 })
@@ -81,6 +83,9 @@ export class DeviceImagesController {
     return this.deviceImagesService.update(id, dto);
   }
 
+  @ApiBearerAuth()
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(":id")
   @ApiOperation({ summary: "Delete device image by ID" })
   @ApiParam({ name: "id", type: Number, required: true, example: 1 })

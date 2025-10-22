@@ -110,13 +110,13 @@ export class UsersService {
     if (!user) throw new NotFoundException("User not found");
     return this._excludePassword(user);
   }
-
   async findAll(
     page = 1,
     limit = 10,
     search = "",
     role?: UserRole,
-    currentUserId?: number
+    currentUserId?: number,
+    regionFilter?: number
   ) {
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
@@ -130,12 +130,14 @@ export class UsersService {
       ],
     };
 
-    
     if (role) {
       where.AND.push({ role });
     }
 
-    
+    if (regionFilter) {
+      where.AND.push({ region_id: regionFilter });
+    }
+
     if (search) {
       where.AND.push({
         OR: [

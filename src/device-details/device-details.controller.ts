@@ -21,12 +21,10 @@ import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 import { Roles } from "../common/decorators/roles";
 import { adminRoles } from "../types";
 
-@ApiTags("Device Details")
-@Roles(...adminRoles)
+
 @Controller("device-details")
-@ApiBearerAuth()
 export class DeviceDetailsController {
-  constructor(private readonly deviceDetailsService: DeviceDetailsService) {}
+  constructor(private readonly deviceDetailsService: DeviceDetailsService) { }
 
   @Get(":deviceId")
   @UseGuards(JwtAuthGuard)
@@ -42,6 +40,9 @@ export class DeviceDetailsController {
     return this.deviceDetailsService.findOne(deviceId);
   }
 
+  @ApiTags("Device Details")
+  @Roles(...adminRoles)
+  @ApiBearerAuth()
   @Patch(":deviceId")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Update or create device details by device ID" })
