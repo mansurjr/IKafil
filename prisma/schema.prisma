@@ -84,7 +84,7 @@ model users {
   carts           carts[]
   contracts_buyer contracts[]     @relation("BuyerContracts")
   contracts_admin contracts[]     @relation("AdminContracts")
-  notifications   notifications[]
+  RevokedToken    RevokedToken[]
 }
 
 model installment_plans {
@@ -158,6 +158,17 @@ model carts {
   @@unique([user_id, device_id])
 }
 
+model RevokedToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int?
+  user      users?   @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 model contracts {
   id                Int            @id @default(autoincrement())
   contract_number   String?        @default(uuid())
@@ -174,6 +185,7 @@ model contracts {
   start_date        DateTime?      @default(now())
   end_date          DateTime?
   is_trade_in       Boolean?       @default(false)
+  trade_in_value    Decimal?       @default(0)
   created_at        DateTime?      @default(now())
   updated_at        DateTime?      @updatedAt
 
@@ -211,13 +223,4 @@ model payments {
   contract contracts @relation(fields: [contract_id], references: [id])
 }
 
-model notifications {
-  id         Int       @id @default(autoincrement())
-  user_id    Int?
-  title      String
-  message    String
-  is_read    Boolean   @default(false)
-  created_at DateTime? @default(now())
 
-  user users? @relation(fields: [user_id], references: [id])
-}

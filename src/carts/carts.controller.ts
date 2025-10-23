@@ -26,6 +26,7 @@ import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: "Foydalanuvchining savatiga qurilma qoshish" })
   @ApiResponse({
@@ -39,6 +40,7 @@ export class CartController {
     return await this.cartService.addToCart(userId, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({ summary: "Foydalanuvchining savatini olish" })
   @ApiResponse({ status: 200, description: "Savatdagi barcha mahsulotlar" })
@@ -46,6 +48,7 @@ export class CartController {
     return await this.cartService.getCardByUserId(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete()
   @ApiOperation({
     summary: "Foydalanuvchining barcha savat elementlarini ochirish",
@@ -55,6 +58,7 @@ export class CartController {
     return await this.cartService.removeAllForUser(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(":id")
   @ApiOperation({ summary: "Savatdan bitta elementni ochirish" })
   @ApiResponse({

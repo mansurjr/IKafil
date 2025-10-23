@@ -12,11 +12,11 @@ import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SignInDto } from "../users/dto/sign-in.dto";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { JwtRefresh } from "../common/guards/refreshToken.guard";
 import {
   GetCurrentUser,
   GetCurrentUser as GetUser,
 } from "../common/decorators/getCurrentUser";
-import { JwtRefresh } from "../common/guards/refreshToken.guard";
 import {
   ApiTags,
   ApiOperation,
@@ -31,14 +31,10 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /** ---------------- REGISTER ---------------- */
   @Post("register")
   @ApiOperation({ summary: "Register a new user" })
   @ApiBody({ type: CreateUserDto })
-  @ApiResponse({
-    status: 201,
-    description: "User successfully registered",
-  })
+  @ApiResponse({ status: 201, description: "User successfully registered" })
   @ApiResponse({
     status: 400,
     description: "Invalid data provided or user already exists",
@@ -47,49 +43,46 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  /** ---------------- SIGN IN ---------------- */
   @Post("signin")
   @ApiOperation({ summary: "Sign in an existing user (login)" })
   @ApiBody({ type: SignInDto })
-  @ApiResponse({
-    status: 200,
-    description: "Login successful",
-  })
+  @ApiResponse({ status: 200, description: "Login successful" })
   @ApiResponse({ status: 401, description: "Invalid email or password" })
   async signIn(
     @Body() dto: SignInDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    return this.authService.signIn(dto, res);
+    return this.authService.signIn(dto, res, false);
   }
 
-  /** ---------------- SEND OTP ---------------- */
+  @Post("signin/admin")
+  @ApiOperation({ summary: "Sign in as admin" })
+  @ApiBody({ type: SignInDto })
+  @ApiResponse({ status: 200, description: "Admin login successful" })
+  @ApiResponse({ status: 401, description: "Invalid email or password" })
+  async signInAdmin(
+    @Body() dto: SignInDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    return this.authService.signIn(dto, res, true);
+  }
+
   @Post("send-otp")
   @ApiOperation({ summary: "Send OTP (verification code) to email address" })
-  @ApiBody({
-    schema: {
-      example: { email: "qobiljon@example.com" },
-    },
-  })
+  @ApiBody({ schema: { example: { email: "qobiljon@example.com" } } })
   @ApiResponse({ status: 200, description: "OTP sent successfully" })
   @ApiResponse({ status: 404, description: "Email not found" })
   async sendOtp(@Body("email") email: string) {
     return this.authService.sendOtp(email);
   }
 
-  /** ---------------- VERIFY OTP ---------------- */
   @Post("verify-otp")
   @ApiOperation({ summary: "Verify the OTP sent to email" })
   @ApiBody({
-    schema: {
-      example: { email: "qobiljon@example.com", otp: "123456" },
-    },
+    schema: { example: { email: "qobiljon@example.com", otp: "123456" } },
   })
   @ApiResponse({ status: 200, description: "OTP verified successfully" })
-  @ApiResponse({
-    status: 400,
-    description: "Invalid or expired OTP",
-  })
+  @ApiResponse({ status: 400, description: "Invalid or expired OTP" })
   async verifyOtp(
     @Body() body: { email: string; otp: string },
     @Res({ passthrough: true }) res: Response
@@ -97,14 +90,9 @@ export class AuthController {
     return this.authService.verifyOtp(body.email, body.otp, res);
   }
 
-  /** ---------------- FORGOT PASSWORD ---------------- */
   @Post("forgot-password")
   @ApiOperation({ summary: "Send password reset link to email" })
-  @ApiBody({
-    schema: {
-      example: { email: "qobiljon@example.com" },
-    },
-  })
+  @ApiBody({ schema: { example: { email: "qobiljon@example.com" } } })
   @ApiResponse({
     status: 200,
     description: "Password reset link sent successfully",
@@ -114,7 +102,6 @@ export class AuthController {
     return this.authService.forgetPassword(email);
   }
 
-  /** ---------------- RESET PASSWORD ---------------- */
   @Post("reset-password")
   @ApiOperation({ summary: "Set a new password (reset password)" })
   @ApiBody({
@@ -126,10 +113,7 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: "Password successfully changed",
-  })
+  @ApiResponse({ status: 200, description: "Password successfully changed" })
   @ApiResponse({
     status: 400,
     description: "Invalid token or passwords do not match",
@@ -144,16 +128,12 @@ export class AuthController {
     );
   }
 
-  /** ---------------- REFRESH TOKEN ---------------- */
   @Get("refresh")
   @UseGuards(JwtRefresh)
   @ApiOperation({ summary: "Get new access token using refresh token" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "New tokens returned successfully" })
-  @ApiResponse({
-    status: 401,
-    description: "Invalid or expired refresh token",
-  })
+  @ApiResponse({ status: 401, description: "Invalid or expired refresh token" })
   async refresh(
     @Res({ passthrough: true }) res: Response,
     @GetCurrentUser("refreshToken") refreshToken: string
@@ -161,7 +141,6 @@ export class AuthController {
     return this.authService.refresh(res, refreshToken);
   }
 
-  /** ---------------- SIGN OUT ---------------- */
   @Get("signout")
   @UseGuards(JwtRefresh)
   @ApiOperation({ summary: "Sign out the user (logout)" })
@@ -174,21 +153,16 @@ export class AuthController {
     return this.authService.signOut(res, refreshToken);
   }
 
-  /** ---------------- ME ---------------- */
   @UseGuards(JwtAuthGuard)
   @Get("me")
   @ApiOperation({ summary: "Get current authenticated user information" })
   @ApiBearerAuth()
-  @ApiResponse({
-    status: 200,
-    description: "User data returned successfully",
-  })
+  @ApiResponse({ status: 200, description: "User data returned successfully" })
   @ApiResponse({ status: 401, description: "Invalid or missing access token" })
   async me(@GetUser("id") userId: number) {
     return this.authService.me(userId);
   }
 
-  /** ---------------- ACTIVATE ACCOUNT ---------------- */
   @Get("activate/:link")
   @ApiOperation({ summary: "Activate user account via email link" })
   @ApiParam({
@@ -196,10 +170,7 @@ export class AuthController {
     example: "activation_link_abc123",
     description: "Activation link",
   })
-  @ApiResponse({
-    status: 200,
-    description: "Account successfully activated",
-  })
+  @ApiResponse({ status: 200, description: "Account successfully activated" })
   @ApiResponse({
     status: 400,
     description: "Invalid or expired activation link",
@@ -221,24 +192,11 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: "Password reset successfully",
-  })
-  @ApiResponse({
-    status: 400,
-    description: "Passwords do not match",
-  })
-  @ApiResponse({
-    status: 404,
-    description: "User not found",
-  })
+  @ApiResponse({ status: 200, description: "Password reset successfully" })
+  @ApiResponse({ status: 400, description: "Passwords do not match" })
+  @ApiResponse({ status: 404, description: "User not found" })
   async resetPasswordWithoutToken(
-    @Body()
-    body: {
-      newPassword: string;
-      confirmNewPassword: string;
-    },
+    @Body() body: { newPassword: string; confirmNewPassword: string },
     @GetCurrentUser("id") id: number
   ) {
     return this.authService.resetPasswordWithoutToken(

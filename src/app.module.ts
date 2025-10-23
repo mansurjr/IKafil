@@ -22,9 +22,11 @@ import { join } from "path";
 import { PaymentScheduleModule } from './payment-schedule/payment-schedule.module';
 import { JwtStrategy } from "./common/strategies/access-strategy";
 import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       envFilePath: ".env",
       isGlobal: true,
@@ -55,4 +57,4 @@ import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
   controllers: [AppController],
   providers: [AppService, JwtStrategy, RefreshJwtStrategy],
 })
-export class AppModule {}
+export class AppModule { }

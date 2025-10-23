@@ -7,10 +7,16 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreatePaymentScheduleDto } from "./dto/create-payment-schedule.dto";
 import { UpdatePaymentScheduleDto } from "./dto/update-payment-schedule.dto";
 import { PaymentStatus } from "@prisma/client";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class PaymentScheduleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) { }
+
 
   async create(createPaymentScheduleDto: CreatePaymentScheduleDto) {
     return this.prisma.payment_schedule.create({
@@ -28,12 +34,22 @@ export class PaymentScheduleService {
     const schedule = await this.prisma.payment_schedule.findUnique({
       where: { id },
     });
-    if (!schedule)
-      throw new NotFoundException(`Payment schedule with id ${id} not found`);
+
+    if (!schedule) {
+      throw new NotFoundException(`Payment schedule with ID ${id} not found`);
+    }
+
     return schedule;
   }
 
   async update(id: number, updatePaymentScheduleDto: UpdatePaymentScheduleDto) {
+    const exists = await this.prisma.payment_schedule.findUnique({
+      where: { id },
+    });
+    if (!exists) {
+      throw new NotFoundException(`Payment schedule with ID ${id} not found`);
+    }
+
     return this.prisma.payment_schedule.update({
       where: { id },
       data: updatePaymentScheduleDto,
@@ -41,19 +57,30 @@ export class PaymentScheduleService {
   }
 
   async remove(id: number) {
+    const exists = await this.prisma.payment_schedule.findUnique({
+      where: { id },
+    });
+    if (!exists) {
+      throw new NotFoundException(`Payment schedule with ID ${id} not found`);
+    }
+
     return this.prisma.payment_schedule.delete({ where: { id } });
   }
+
+  // --- QUERY HELPERS ---
 
   async getByContractId(contractId: number) {
     const schedules = await this.prisma.payment_schedule.findMany({
       where: { contract_id: contractId },
       orderBy: { due_date: "asc" },
     });
+
     if (!schedules.length) {
       throw new NotFoundException(
-        `No payment schedules found for contract ${contractId}`
+        `No payment schedules found for contract ID ${contractId}`,
       );
     }
+
     return schedules;
   }
 
@@ -62,11 +89,13 @@ export class PaymentScheduleService {
       where: { contract_id: contractId, status },
       orderBy: { due_date: "asc" },
     });
+
     if (!schedules.length) {
       throw new NotFoundException(
-        `No payment schedules found for contract ${contractId} with status "${status}"`
+        `No payment schedules found for contract ${contractId} with status "${status}"`,
       );
     }
+
     return schedules;
   }
 
@@ -76,24 +105,71 @@ export class PaymentScheduleService {
       select: { id: true },
     });
 
-    if (!contracts.length)
+    if (!contracts.length) {
       throw new NotFoundException(`No contracts found for buyer ${buyerId}`);
+    }
 
-    const whereClause: any = {
-      contract_id: { in: contracts.map((c) => c.id) },
-    };
-    if (status) whereClause.status = status;
+    const contractIds = contracts.map((c) => c.id);
 
     const schedules = await this.prisma.payment_schedule.findMany({
-      where: whereClause,
+      where: {
+        contract_id: { in: contractIds },
+        ...(status ? { status } : {}),
+      },
       orderBy: { due_date: "asc" },
     });
 
-    if (!schedules.length)
+    if (!schedules.length) {
       throw new NotFoundException(
-        `No payment schedules found for buyer ${buyerId}${status ? ` with status ${status}` : ""}`
+        `No payment schedules found for buyer ${buyerId}${status ? ` with status "${status}"` : ""
+        }`,
       );
+    }
 
     return schedules;
+  }
+
+  // --- CRON JOB (runs every week) ---
+  @Cron(CronExpression.EVERY_WEEK)
+  async checkCurrentMonthPayments() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const unpaidSchedules = await this.prisma.payment_schedule.findMany({
+      where: {
+        due_date: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+        status: {
+          not: PaymentStatus.paid,
+        },
+      },
+      include: {
+        contract: {
+          include: {
+            buyer: true,
+          },
+        },
+      },
+    });
+
+    if (!unpaidSchedules.length) return;
+
+    for (const schedule of unpaidSchedules) {
+      const buyer = schedule.contract?.buyer;
+      const buyerName = buyer?.full_name || `Buyer#${buyer?.id || "unknown"}`;
+      const dueDate = schedule.due_date.toISOString().split("T")[0];
+
+      try {
+        await this.notificationsService.sendViaSMS({
+          reciever_id: buyer.id,
+          message: `Hurmatli ${buyerName}, sizning to'lov muddati ${dueDate} sanasida tugaydi. Iltimos, to'lovni amalga oshiring.`,
+        });
+      } catch (err) {
+        console.error(`❌ Failed to send SMS to ${buyerName}: ${err.message}`);
+      }
+    }
   }
 }

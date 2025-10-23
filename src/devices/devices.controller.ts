@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import {
   Controller,
   Get,
@@ -25,14 +26,17 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
-import { Express } from "express";
 import { DeviceSaleStatus } from "@prisma/client";
 import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { RolesGuard } from "../common/guards/role.guard";
+import { Roles } from "../common/decorators/roles";
+import { adminRoles } from "../types";
 
 @ApiTags("Devices")
 @Controller("devices")
@@ -40,6 +44,9 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Post()
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FilesInterceptor("images"))
   @ApiOperation({ summary: "Create a new device (with optional images)" })
   @ApiConsumes("multipart/form-data")
@@ -65,6 +72,7 @@ export class DevicesController {
   }
 
   @Get()
+  @UseGuards()
   @ApiOperation({ summary: "Get all devices" })
   @ApiQuery({
     name: "search",
@@ -72,6 +80,7 @@ export class DevicesController {
     type: String,
     example: "iPhone",
   })
+  @ApiBearerAuth()
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   findAll(
@@ -82,6 +91,7 @@ export class DevicesController {
     return this.devicesService.findAll(search, page, limit);
   }
   @Get("seller/own")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get seller's own devices by status" })
   @ApiParam({ name: "sellerId", type: Number })
   @ApiQuery({
@@ -96,6 +106,7 @@ export class DevicesController {
     enum: DeviceSaleStatus,
   })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   async getOwnDevices(
     @GetCurrentUser("id") sellerId: number,
     @Query("isActive") isActive?: boolean,
@@ -117,6 +128,9 @@ export class DevicesController {
   }
 
   @Put(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FilesInterceptor("images"))
   @ApiOperation({ summary: "Update device (with optional new images)" })
   @ApiConsumes("multipart/form-data")
@@ -130,21 +144,30 @@ export class DevicesController {
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() updateDeviceDto: UpdateDeviceDto,
+    @Body(new ValidationPipe({ transform: true }))
+    rawBody: any,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
-    // Parse details JSON if passed as string
-    if (typeof updateDeviceDto.details === "string") {
-      try {
-        updateDeviceDto.details = JSON.parse(updateDeviceDto.details);
-      } catch {
-        throw new BadRequestException('Invalid JSON format in "details" field');
-      }
-    }
+    const updateDeviceDto: UpdateDeviceDto = {
+      ...rawBody,
+      seller_id: Number(rawBody.seller_id),
+      region_id: Number(rawBody.region_id),
+      is_active:
+        rawBody.is_active === true || rawBody.is_active === "true"
+          ? true
+          : false,
+      details:
+        typeof rawBody.details === "string"
+          ? JSON.parse(rawBody.details)
+          : rawBody.details,
+    };
     return this.devicesService.update(id, updateDeviceDto, files);
   }
 
   @Delete(":id")
+  @Roles(...adminRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Delete a device by ID" })
   @ApiParam({ name: "id", type: Number, example: 1 })
   @ApiResponse({ status: 200, description: "Device successfully deleted." })

@@ -18,7 +18,6 @@ export class DeviceImagesService {
     createDeviceImageDto: CreateDeviceImageDto,
     file?: Express.Multer.File
   ) {
-    console.log(createDeviceImageDto);
     const device = await this.prisma.devices.findUnique({
       where: { id: createDeviceImageDto.device_id },
     });
@@ -38,9 +37,20 @@ export class DeviceImagesService {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
-
     const imageUrl = `/uploads/devices/${filename}`;
+
+    const exists = await this.prisma.device_images.findFirst({
+      where: {
+        device_id: createDeviceImageDto.device_id,
+        url: imageUrl,
+      },
+    });
+
+    if (exists) {
+      throw new Error("This image already exists for this device.");
+    }
+
+    fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
 
     if (createDeviceImageDto.is_primary) {
       await this.prisma.device_images.updateMany({
@@ -121,5 +131,107 @@ export class DeviceImagesService {
 
     await this.prisma.device_images.delete({ where: { id } });
     return { message: "Device image deleted successfully!" };
+  }
+
+  async getTopImageDevices(limit = 5) {
+    const allDevices = await this.prisma.devices.findMany({
+      include: { device_images: true },
+    });
+
+    const sorted = allDevices
+      .map((device) => ({
+        ...device,
+        imageCount: device.device_images.length,
+      }))
+      .sort((a, b) => b.imageCount - a.imageCount)
+      .slice(0, limit);
+
+    return sorted.map((d) => ({
+      id: d.id,
+      name: d.name,
+      imageCount: d.imageCount,
+      images: d.device_images,
+    }));
+  }
+
+  async findDevicesWithoutImages() {
+    const devices = await this.prisma.devices.findMany({
+      include: { device_images: true },
+    });
+
+    return devices.filter((d) => d.device_images.length === 0);
+  }
+
+  async getTopImageGroups(limit = 5) {
+    const devices = await this.prisma.device_images.groupBy({
+      by: ["device_id"],
+      _count: { device_id: true },
+      orderBy: { _count: { device_id: "desc" } },
+      take: limit,
+    });
+
+    const results: {
+      device_id: number;
+      count: number;
+      images: {
+        id: number;
+        device_id: number;
+        url: string;
+        is_primary: boolean | null;
+        created_at: Date | null;
+      }[];
+    }[] = [];
+
+    for (const d of devices) {
+      const images = await this.prisma.device_images.findMany({
+        where: { device_id: d.device_id },
+      });
+
+      results.push({
+        device_id: d.device_id,
+        count: d._count.device_id,
+        images,
+      });
+    }
+
+    return results;
+  }
+
+  async getDevicesWithoutPrimaryImage() {
+    const allDevices = await this.prisma.devices.findMany({
+      select: { id: true },
+    });
+
+    const devicesWithPrimary = await this.prisma.device_images.findMany({
+      where: { is_primary: true },
+      select: { device_id: true },
+    });
+
+    const primaryIds = devicesWithPrimary.map((img) => img.device_id);
+
+    const withoutPrimary = allDevices.filter(
+      (device: any) => !primaryIds.includes(device.id)
+    );
+
+    return withoutPrimary.map((d: any) => d.id);
+  }
+
+  async findBrokenImageFiles() {
+    const images = await this.prisma.device_images.findMany();
+    const broken: typeof images = [];
+
+    for (const img of images) {
+      const filePath = path.join(
+        __dirname,
+        "../../uploads/devices",
+        path.basename(img.url)
+      );
+
+      if (!fs.existsSync(filePath)) {
+        broken.push(img);
+      }
+    }
+
+    return broken;
   }
 }

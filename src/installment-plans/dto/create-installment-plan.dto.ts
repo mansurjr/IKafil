@@ -1,45 +1,24 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsPositive, IsOptional } from "class-validator";
 import { Type } from "class-transformer";
+import { IsNumber, IsPositive } from "class-validator";
 
 export class CreateInstallmentPlanDto {
-  @ApiProperty({
-    example: 6,
-    description:
-      "Tolov muddatining davomiyligi (oylarda). Masalan: 6, 12 yoki 18 oy.",
-  })
+  @ApiProperty({ example: 12, description: "Oylik to'lov muddati (oylarda)" })
   @Type(() => Number)
-  @IsNumber({}, { message: "months raqam (number) bolishi kerak" })
-  @IsPositive({ message: "months musbat son (positive number) bolishi kerak" })
+  @IsNumber()
+  @IsPositive()
   months: number;
 
-  @ApiProperty({
-    example: 10,
-    description: "Foiz stavkasi (raqamda, % belgisisiz). Masalan: 10 → 10%.",
-    required: false,
-  })
-  @IsOptional()
+  @ApiProperty({ example: 15, description: "Yillik foiz stavkasi (%)" })
   @Type(() => Number)
-  @IsNumber({}, { message: "percent raqam (number) bolishi kerak" })
-  @IsPositive({
-    message: "percent musbat son (positive number) bolishi kerak",
-  })
-  percent?: number;
+  @IsNumber()
+  percent: number;
 
   @ApiProperty({
-    example: 25,
-    description:
-      "Boshlangich tolov miqdori (foizda, % belgisisiz). Masalan: 25 → 25%.",
-    required: false,
+    example: 30,
+    description: "Boshlang'ich to'lov foizi (%)",
   })
-  @IsOptional()
   @Type(() => Number)
-  @IsNumber(
-    {},
-    { message: "first_payment_percent raqam (number) bolishi kerak" }
-  )
-  @IsPositive({
-    message: "first_payment_percent musbat son (positive number) bolishi kerak",
-  })
-  first_payment_percent?: number;
+  @IsNumber()
+  first_payment_percent: number;
 }

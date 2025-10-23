@@ -8,12 +8,10 @@ import {
 import { Response } from "express";
 import * as bcrypt from "bcrypt";
 import { ConfigService } from "@nestjs/config";
-
 import { UsersService } from "../users/users.service";
 import { JwtService } from "../jwt/jwt.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
-
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SignInDto } from "../users/dto/sign-in.dto";
 import uuid from "uuid";
@@ -28,19 +26,16 @@ export class AuthService {
     private readonly mail: MailService
   ) {}
 
-  // ---------------- REGISTER ----------------
   async register(dto: Omit<CreateUserDto, "role">) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
     if (existing) throw new BadRequestException("Email already registered");
 
     const activationLink = uuid.v4();
     await this.mail.sendMail(dto.email, activationLink);
-
     const user = await this.usersService.createUser(dto, activationLink);
     return { message: "User registered successfully", userId: user.id };
   }
 
-  // ---------------- ACTIVATE ----------------
   async activate(activationLink: string) {
     const user = await this.prisma.users.findFirst({
       where: { activation_link: activationLink },
@@ -51,35 +46,35 @@ export class AuthService {
       where: { id: user.id },
       data: { is_active: true, activation_link: null },
     });
-
     return { message: "Account activated successfully" };
   }
 
-  // ---------------- SIGN IN ----------------
-  async signIn(dto: SignInDto, res: Response) {
+  async signIn(dto: SignInDto, res: Response, admin?: boolean) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
     if (!user) throw new UnauthorizedException("Invalid credentials");
+
+    if (admin && user.role !== "admin" && user.role !== "superadmin") {
+      throw new ForbiddenException("Access denied");
+    }
 
     const valid = await bcrypt.compare(dto.password, user.password!);
     if (!valid) throw new UnauthorizedException("Invalid credentials");
 
-    if (!user.is_active)
+    if (!user.is_active) {
       throw new ForbiddenException("Please activate your account first");
+    }
 
     const tokens = await this.jwtService.generateTokens(user);
     await this.usersService.updateToken(user.id, tokens.refreshToken);
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      sameSite: "strict",
-      secure: this.config.get("NODE_ENV") === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- SEND OTP ----------------
   async sendOtp(emailOrPhone: string) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new NotFoundException("User not found");
@@ -93,11 +88,9 @@ export class AuthService {
     });
 
     if (user.email) await this.mail.sendOtpMail(user.email, otp);
-
     return { message: "OTP sent successfully" };
   }
 
-  // ---------------- VERIFY OTP ----------------
   async verifyOtp(emailOrPhone: string, otp: string, res: Response) {
     const user = await this.usersService.findByEmailOrPhone(emailOrPhone);
     if (!user) throw new BadRequestException("Invalid user");
@@ -126,7 +119,6 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- FORGOT PASSWORD ----------------
   async forgetPassword(email: string) {
     const user = await this.usersService.findByEmailOrPhone(email);
     if (!user) throw new BadRequestException("User not found");
@@ -143,7 +135,6 @@ export class AuthService {
     return { message: "Password reset link sent to your email" };
   }
 
-  // ---------------- RESET PASSWORD ----------------
   async resetPassword(
     token: string,
     newPassword: string,
@@ -166,7 +157,6 @@ export class AuthService {
     return { message: "Password reset successfully" };
   }
 
-  // ---------------- REFRESH TOKEN ----------------
   async refresh(res: Response, refreshToken: string) {
     if (!refreshToken) throw new UnauthorizedException("No refresh token");
 
@@ -191,40 +181,65 @@ export class AuthService {
     return { accessToken: tokens.accessToken };
   }
 
-  // ---------------- SIGN OUT ----------------
-  async signOut(res: Response, refreshToken: string) {
+  async signOut(res: Response, refreshToken: string, accessToken?: string) {
     if (!refreshToken) throw new UnauthorizedException("Not logged in");
 
-    const payload = this.jwtService.decodeToken(refreshToken);
-    if (payload?.id) await this.usersService.updateToken(payload.id, null);
+    const refreshPayload = this.jwtService.decodeToken(refreshToken);
+    if (!refreshPayload?.id) throw new UnauthorizedException("Invalid token");
 
-    res.clearCookie("refreshToken");
+    const userId = refreshPayload.id;
+
+    await this.usersService.updateToken(userId, null);
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    if (accessToken) {
+      await this.prisma.revokedToken.create({
+        data: {
+          token: accessToken,
+          userId,
+          expiresAt,
+        },
+      });
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+    });
+
     return { message: "Signed out successfully" };
   }
 
-  // ---------------- ME ----------------
   async me(userId: number) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException("User not found");
 
-    const { password, token, otp_code, otp_expire, resetLink, ...safeUser } =
-      user;
+    const {
+      password,
+      token,
+      otp_code,
+      otp_expire,
+      resetLink,
+      is_active,
+      telegramId,
+      role,
+      ...safeUser
+    } = user;
     return safeUser;
   }
-  // ---------------- RESET PASSWORD WITHOUT TOKEN ----------------
+
   async resetPasswordWithoutToken(
     id: number,
     newPassword: string,
     confirmNewPassword: string
   ) {
-    if (newPassword !== confirmNewPassword) {
+    if (newPassword !== confirmNewPassword)
       throw new BadRequestException("Passwords do not match");
-    }
 
     const user = await this.usersService.findById(id);
     if (!user) throw new NotFoundException("User not found");
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.prisma.users.update({
       where: { id: user.id },
       data: { password: hashedPassword },

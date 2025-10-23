@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -12,16 +13,21 @@ import {
   ApiParam,
   ApiBody,
   ApiResponse,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { DeviceDetailsService } from "./device-details.service";
 import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
+import { JwtAuthGuard } from "../common/guards/accessToken.guard";
+import { Roles } from "../common/decorators/roles";
+import { adminRoles } from "../types";
 
-@ApiTags("Device Details")
+
 @Controller("device-details")
 export class DeviceDetailsController {
-  constructor(private readonly deviceDetailsService: DeviceDetailsService) {}
+  constructor(private readonly deviceDetailsService: DeviceDetailsService) { }
 
   @Get(":deviceId")
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get device details by device ID" })
   @ApiParam({ name: "deviceId", type: Number, required: true, example: 1 })
   @ApiResponse({ status: 200, description: "Device details found." })
@@ -34,7 +40,11 @@ export class DeviceDetailsController {
     return this.deviceDetailsService.findOne(deviceId);
   }
 
+  @ApiTags("Device Details")
+  @Roles(...adminRoles)
+  @ApiBearerAuth()
   @Patch(":deviceId")
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Update or create device details by device ID" })
   @ApiParam({ name: "deviceId", type: Number, required: true, example: 1 })
   @ApiBody({ type: UpdateDeviceDetailDto })

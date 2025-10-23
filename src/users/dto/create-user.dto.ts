@@ -12,6 +12,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
+  IsNotEmpty,
 } from "class-validator";
 import { UserRole } from "@prisma/client";
 
@@ -53,14 +54,15 @@ export class CreateUserDto {
   @IsEmail({}, { message: "Invalid email format" })
   email: string;
 
+
   @ApiProperty({
     example: "+1234567890",
     description: "The user's phone number (optional)",
     required: false,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsString({ message: "Phone number must be a string" })
-  phone?: string;
+  phone: string;
 
   @ApiProperty({
     example: "myStrongPassword123",

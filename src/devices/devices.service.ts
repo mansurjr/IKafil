@@ -12,10 +12,11 @@ import { join } from "path";
 import { writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { DeviceSaleStatus, DeviceType, Prisma, SaleType } from "@prisma/client";
 import sharp from "sharp";
+import { NotificationsService } from "../notifications/notifications.service";
 
-@Injectable() 
+@Injectable()
 export class DevicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notification: NotificationsService) { }
 
   private async compressAndSaveImage(
     file: Express.Multer.File,
@@ -76,18 +77,21 @@ export class DevicesService {
       }
     }
 
-    return this.prisma.devices.create({
+    const newDevice = await this.prisma.devices.create({
       data: {
         ...deviceData,
+        seller_id: Number(deviceData.seller_id),
+        region_id: Number(deviceData.region_id),
+        is_active: Boolean(deviceData.is_active),
         details: details
           ? {
-              create: details as Prisma.device_detailsCreateWithoutDeviceInput,
-            }
+            create: details as Prisma.device_detailsCreateWithoutDeviceInput,
+          }
           : undefined,
         device_images: imageData.length
           ? {
-              create: imageData,
-            }
+            create: imageData,
+          }
           : undefined,
       },
       include: {
@@ -95,6 +99,12 @@ export class DevicesService {
         device_images: true,
       },
     });
+    if (createDeviceDto.sale_type == "seller_sold" || createDeviceDto.sale_type == "trade_in") {
+      await this.notification.sendViaSMS({
+        reciever_id: newDevice.seller_id!,
+        message: `Your ${newDevice.name} device has been listed for ${createDeviceDto.sale_type == "seller_sold" ? "sale" : "trade in"} check on sale x}`
+      })
+    }
   }
 
   async findAll(search?: string, page = 1, limit = 10) {
@@ -210,22 +220,25 @@ export class DevicesService {
       where: { id },
       data: {
         ...deviceData,
+        seller_id: Number(deviceData.seller_id),
+        region_id: Number(deviceData.region_id),
+        is_active: Boolean(deviceData.is_active),
         details: details
           ? {
-              upsert: {
-                create:
-                  details as Prisma.device_detailsCreateWithoutDeviceInput,
-                update:
-                  details as Prisma.device_detailsCreateWithoutDeviceInput,
-              },
-            }
+            upsert: {
+              create:
+                details as Prisma.device_detailsCreateWithoutDeviceInput,
+              update:
+                details as Prisma.device_detailsCreateWithoutDeviceInput,
+            },
+          }
           : undefined,
         device_images:
           imageData.length > 0
             ? {
-                deleteMany: {},
-                create: imageData,
-              }
+              deleteMany: {},
+              create: imageData,
+            }
             : undefined,
       },
       include: {
