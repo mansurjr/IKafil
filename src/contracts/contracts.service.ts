@@ -9,14 +9,16 @@ import { InstallmentPlansService } from "../installment-plans/installment-plans.
 import { CreateContractDto } from "./dto/create-contract.dto";
 import { UpdateContractDto } from "./dto/update-contract.dto";
 import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class ContractsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly deviceService: DevicesService,
-    private readonly planService: InstallmentPlansService
-  ) {}
+    private readonly planService: InstallmentPlansService,
+    private readonly notification: NotificationsService
+  ) { }
 
   private async validateEntity(
     model: keyof PrismaService,
@@ -121,6 +123,15 @@ export class ContractsService {
         where: { id: device_id },
         data: { status: "sold" },
       });
+
+      await this.notification.sendViaSMS({
+        reciever_id: contract.buyer_id,
+        message: `Your ${device.name} device has been sold for ${total_price} so'm.`
+      })
+      await this.notification.sendViaSMS({
+        reciever_id: contract.buyer_id,
+        message: `Contract created successfully for ${device.name} device.`
+      })
 
       return {
         message: "✅ Contract created successfully",
