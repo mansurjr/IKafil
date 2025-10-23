@@ -8,7 +8,6 @@ import { PrismaService } from "../prisma/prisma.service";
 import {
   PaymentStatus,
   PaymentMethod,
-  Prisma,
   payment_schedule,
 } from "@prisma/client";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
@@ -26,8 +25,15 @@ export class PaymentsService {
     });
 
     if (!contract) throw new NotFoundException("Contract not found");
+
     if (contract.buyer_id !== buyerId)
       throw new ForbiddenException("You can only pay for your own contract");
+
+    if (+dto.amount < +contract.monthly_payment) {
+      throw new ForbiddenException(
+        `Minimum amount should be ${contract.monthly_payment}`
+      );
+    }
 
     const amount = Number(dto.amount);
     if (isNaN(amount) || amount <= 0)
@@ -80,12 +86,6 @@ export class PaymentsService {
 
   /**
    * 🔁 2. Admin/processor confirms or rejects payment
-   *
-   * Note:
-   * - We compute schedule updates for the next pending schedule only (partial allowed).
-   * - After schedule updates we recompute remaining_balance using aggregate sum of amount_due
-   *   from payment_schedule (this ensures contract.remaining_balance always equals
-   *   sum of outstanding schedule amounts).
    */
   async updateStatus(paymentId: number, status: PaymentStatus) {
     const payment = await this.prisma.payments.findUnique({
@@ -93,34 +93,31 @@ export class PaymentsService {
     });
     if (!payment) throw new NotFoundException("Payment not found");
 
-    if (
-      payment.status === PaymentStatus.paid &&
-      status === PaymentStatus.paid
-    ) {
-      return {
-        message: "Payment is already confirmed.",
-        payment,
-        updatedSchedule: null,
-        newRemaining: Number(
-          (
-            await this.prisma.contracts.findUnique({
-              where: { id: payment.contract_id },
-              select: { remaining_balance: true },
-            })
-          )?.remaining_balance ?? 0
-        ),
-      };
-    }
-
-    if (payment.status !== PaymentStatus.pending)
-      throw new BadRequestException(
-        `Only pending payments can be updated (current: ${payment.status})`
-      );
-
     const contract = await this.prisma.contracts.findUnique({
       where: { id: payment.contract_id },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    // Already paid
+    if (
+      payment.status === PaymentStatus.paid &&
+      status === PaymentStatus.paid
+    ) {
+      const remaining = Number(
+        (
+          await this.prisma.contracts.findUnique({
+            where: { id: payment.contract_id },
+            select: { remaining_balance: true },
+          })
+        )?.remaining_balance ?? 0
+      );
+      return {
+        message: "Payment is already confirmed.",
+        payment,
+        updatedSchedule: null,
+        newRemaining: remaining,
+      };
+    }
 
     if (status === PaymentStatus.paid) {
       const amount = Number(payment.amount);
@@ -140,10 +137,9 @@ export class PaymentsService {
         });
 
         let updatedSchedule: payment_schedule | null = null;
+
         if (nextSchedule) {
           const prevPaid = Number(nextSchedule.paid_amount ?? 0);
-          const originalAmountDue = Number(nextSchedule.amount_due) + prevPaid;
-
           const scheduleRemaining = Number(nextSchedule.amount_due);
           const amountToApply = Math.min(amount, scheduleRemaining);
           const newPaid = prevPaid + amountToApply;
@@ -160,6 +156,7 @@ export class PaymentsService {
           });
         }
 
+        // Recalculate remaining balance
         const agg = await tx.payment_schedule.aggregate({
           where: { contract_id: contract.id },
           _sum: { amount_due: true },
@@ -169,24 +166,11 @@ export class PaymentsService {
 
         const updatedContract = await tx.contracts.update({
           where: { id: contract.id },
-          data: { remaining_balance: remainingSum.toFixed(2) },
+          data: {
+            remaining_balance: remainingSum.toFixed(2),
+            ...(remainingSum <= 0 ? { status: "completed" } : {}),
+          },
         });
-
-        if (remainingSum <= 0) {
-          const stillPending = await tx.payment_schedule.count({
-            where: {
-              contract_id: contract.id,
-              status: PaymentStatus.pending,
-            },
-          });
-
-          if (stillPending === 0) {
-            await tx.contracts.update({
-              where: { id: contract.id },
-              data: { status: "completed" },
-            });
-          }
-        }
 
         return {
           message: "✅ Payment confirmed successfully",
@@ -251,6 +235,7 @@ export class PaymentsService {
       orderBy: { payment_date: "desc" },
     });
   }
+
   /**
    * 👤 5. Get all payments for a buyer (optionally filtered by status)
    */
