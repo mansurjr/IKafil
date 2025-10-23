@@ -59,8 +59,6 @@ export class DeviceImagesController {
   ) {
     return this.deviceImagesService.create(dto, file);
   }
-
-
  
   @Get(":deviceId")
   @ApiOperation({ summary: "Get all images of a specific device" })
@@ -91,47 +89,5 @@ export class DeviceImagesController {
   @ApiParam({ name: "id", type: Number, required: true, example: 1 })
   remove(@Param("id", ParseIntPipe) id: number) {
     return this.deviceImagesService.remove(id);
-  }
-
-  @Get("smart/top-devices")
-  @ApiOperation({ summary: "Eng ko'p rasmga ega bo'lgan qurilmalar" })
-  @ApiQuery({ name: "limit", required: false, example: 5 })
-  async getTopImageDevices(@Query("limit") limit = 5) {
-    return this.deviceImagesService.getTopImageDevices(Number(limit));
-  }
-
-  @Get("smart/empty-devices")
-  @ApiOperation({ summary: "Rasmsiz (image yo'q) qurilmalar ro'yxati" })
-  async findDevicesWithoutImages() {
-    return this.deviceImagesService.findDevicesWithoutImages();
-  }
-
-  @Get("smart/top-image-groups")
-  @ApiOperation({
-    summary:
-      "Eng ko'p rasmga ega bo'lgan device guruhlarini olish (device_images asosida)",
-  })
-  @ApiQuery({ name: "limit", required: false, example: 5 })
-  async getTopImageGroups(@Query("limit") limit = 5) {
-    return this.deviceImagesService.getTopImageGroups(Number(limit));
-  }
-
-  @Get("smart/without-primary")
-  @ApiOperation({
-    summary: "Primary rasmga ega bo'lmagan device'larni aniqlash",
-    description: "is_primary = true rasm yo'q bo'lgan qurilmalarni qaytaradi",
-  })
-  async getDevicesWithoutPrimaryImage() {
-    return this.deviceImagesService.getDevicesWithoutPrimaryImage();
-  }
-
-  @Get("smart/broken-files")
-  @ApiOperation({
-    summary: "Fayl tizimida yo'q bo'lgan rasm fayllarni topish",
-    description:
-      "DB da bor, lekin uploads/devices papkasida mavjud bo'lmagan rasmlar qaytaradi",
-  })
-  async findBrokenImageFiles() {
-    return this.deviceImagesService.findBrokenImageFiles();
   }
 }
