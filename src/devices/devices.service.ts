@@ -13,7 +13,7 @@ import { writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { DeviceSaleStatus, DeviceType, Prisma, SaleType } from "@prisma/client";
 import sharp from "sharp";
 
-@Injectable() 
+@Injectable()
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -100,14 +100,12 @@ export class DevicesService {
     });
   }
 
-  async findAll(search?: string, page = 1, limit = 10) {
-    const safePage = Number(page) && page > 0 ? Number(page) : 1;
-    const numberLimit = Number(limit) && limit > 0 ? Number(limit) : 10;
+  async findAll(search?: string, type?: DeviceType, page = 1, limit = 10) {
+    const safePage = Number(page) > 0 ? Number(page) : 1;
+    const numberLimit = Number(limit) > 0 ? Number(limit) : 10;
     const skip = (safePage - 1) * numberLimit;
 
     const filter: Prisma.devicesWhereInput[] = [];
-    const device_type = Object.values(DeviceType);
-    const sale_type = Object.values(SaleType);
 
     if (search) {
       filter.push({
@@ -117,13 +115,13 @@ export class DevicesService {
         },
       });
 
-      if (device_type.includes(search as DeviceType)) {
-        filter.push({ type: { equals: search as DeviceType } });
-      }
-
-      if (sale_type.includes(search as SaleType)) {
+      if (Object.values(SaleType).includes(search as SaleType)) {
         filter.push({ sale_type: { equals: search as SaleType } });
       }
+    }
+
+    if (type) {
+      filter.push({ type: { equals: type } });
     }
 
     const conditions = filter.length ? { OR: filter } : {};
@@ -132,6 +130,33 @@ export class DevicesService {
 
     const devices = await this.prisma.devices.findMany({
       where: conditions,
+      include: {
+        details: true,
+        device_images: true,
+      },
+      orderBy: { created_at: "desc" },
+      skip,
+      take: numberLimit,
+    });
+
+    return {
+      total,
+      page: safePage,
+      limit: numberLimit,
+      totalPages: Math.ceil(total / numberLimit),
+      data: devices,
+    };
+  }
+
+  async getByType(type: "iphone" | "mac", page = 1, limit = 10) {
+    const safePage = Number(page) > 0 ? Number(page) : 1;
+    const numberLimit = Number(limit) > 0 ? Number(limit) : 10;
+    const skip = (safePage - 1) * numberLimit;
+
+    const total = await this.prisma.devices.count({ where: { type } });
+
+    const devices = await this.prisma.devices.findMany({
+      where: { type },
       include: {
         details: true,
         device_images: true,
@@ -216,14 +241,14 @@ export class DevicesService {
         seller_id: Number(deviceData.seller_id),
         region_id: Number(deviceData.region_id),
         is_active: Boolean(deviceData.is_active),
-        details: details  
+        details: details
           ? {
               upsert: {
                 create:
                   details as Prisma.device_detailsCreateWithoutDeviceInput,
                 update:
                   details as Prisma.device_detailsCreateWithoutDeviceInput,
-              },  
+              },
             }
           : undefined,
         device_images:
