@@ -84,7 +84,6 @@ model users {
   carts           carts[]
   contracts_buyer contracts[]     @relation("BuyerContracts")
   contracts_admin contracts[]     @relation("AdminContracts")
-  notifications   notifications[]
   RevokedToken    RevokedToken[]
 }
 
@@ -224,13 +223,4 @@ model payments {
   contract contracts @relation(fields: [contract_id], references: [id])
 }
 
-model notifications {
-  id         Int       @id @default(autoincrement())
-  user_id    Int?
-  title      String
-  message    String
-  is_read    Boolean   @default(false)
-  created_at DateTime? @default(now())
 
-  user users? @relation(fields: [user_id], references: [id])
-}

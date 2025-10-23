@@ -34,6 +34,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
+    "httpsms": "^0.0.4",
     "multer": "^2.0.2",
     "nestjs-telegraf": "^2.9.1",
     "nodemailer": "^7.0.9",
