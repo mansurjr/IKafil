@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { DeviceType, Prisma } from "@prisma/client";
 import {
   Controller,
   Get,
@@ -73,21 +73,32 @@ export class DevicesController {
 
   @Get()
   @ApiOperation({ summary: "Get all devices" })
-  @ApiQuery({
-    name: "search",
-    required: false,
-    type: String,
-    example: "iPhone",
-  })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiQuery({ name: "type", required: false, enum: DeviceType })
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   findAll(
     @Query("search") search?: string,
+    @Query("type") type?: DeviceType,
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page = 1,
     @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit = 10
   ) {
-    return this.devicesService.findAll(search, page, limit);
+    return this.devicesService.findAll(search, type, page, limit);
   }
+
+  @Get("by-type")
+  @ApiOperation({ summary: "Get devices by type" })
+  @ApiQuery({ name: "type", required: true, enum: DeviceType })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
+  getByType(
+    @Query("type") type: "iphone" | "mac",
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page = 1,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit = 10
+  ) {
+    return this.devicesService.getByType(type, page, limit);
+  }
+
   @Get("seller/own")
   @ApiOperation({ summary: "Get seller's own devices by status" })
   @ApiParam({ name: "sellerId", type: Number })
