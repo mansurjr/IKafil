@@ -58,6 +58,7 @@ model region {
 
   users   users[]
   devices devices[]
+  branch  branch[]
 }
 
 model users {
@@ -79,12 +80,13 @@ model users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
-  region          region?         @relation(fields: [region_id], references: [id])
-  devices         devices[]       @relation("UserDevices")
-  carts           carts[]
-  contracts_buyer contracts[]     @relation("BuyerContracts")
-  contracts_admin contracts[]     @relation("AdminContracts")
-  RevokedToken    RevokedToken[]
+  region           region?        @relation(fields: [region_id], references: [id])
+  devices          devices[]      @relation("UserDevices")
+  carts            carts[]
+  contracts_buyer  contracts[]    @relation("BuyerContracts")
+  contracts_admin  contracts[]    @relation("AdminContracts")
+  RevokedToken     RevokedToken[]
+  contracts_seller contracts[]    @relation("SellerContracts")
 }
 
 model installment_plans {
@@ -191,11 +193,24 @@ model contracts {
   updated_at        DateTime?      @updatedAt
 
   buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
+  seller           users?             @relation("SellerContracts", fields: [seller_id], references: [id])
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
   device           devices            @relation(fields: [device_id], references: [id])
   plan             installment_plans? @relation(fields: [plan_id], references: [id])
   payment_schedule payment_schedule[]
   payments         payments[]
+}
+
+model branch {
+  id         Int      @id @default(autoincrement())
+  name       String
+  location   String
+  latitude   Float
+  longitude  Float
+  regionId   Int
+  region     region   @relation(fields: [regionId], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model payment_schedule {
@@ -223,5 +238,3 @@ model payments {
 
   contract contracts @relation(fields: [contract_id], references: [id])
 }
-
-
