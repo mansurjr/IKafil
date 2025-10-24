@@ -16,7 +16,10 @@ import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class DevicesService {
-  constructor(private readonly prisma: PrismaService, private readonly notification: NotificationsService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notification: NotificationsService
+  ) {}
 
   private async compressAndSaveImage(
     file: Express.Multer.File,
@@ -48,6 +51,7 @@ export class DevicesService {
         "seller_id is required for trade_in or seller_sold devices"
       );
     }
+
     if (!deviceData.seller_id) {
       deviceData.sale_type = SaleType.website_sold;
     }
@@ -80,18 +84,23 @@ export class DevicesService {
     const newDevice = await this.prisma.devices.create({
       data: {
         ...deviceData,
-        seller_id: Number(deviceData.seller_id),
+        seller_id: deviceData.seller_id
+          ? Number(deviceData.seller_id)
+          : undefined,
         region_id: Number(deviceData.region_id),
-        is_active: Boolean(deviceData.is_active),
+        is_active:
+          deviceData.is_active !== undefined
+            ? Boolean(deviceData.is_active)
+            : true,
         details: details
           ? {
-            create: details as Prisma.device_detailsCreateWithoutDeviceInput,
-          }
+              create: details as Prisma.device_detailsCreateWithoutDeviceInput,
+            }
           : undefined,
         device_images: imageData.length
           ? {
-            create: imageData,
-          }
+              create: imageData,
+            }
           : undefined,
       },
       include: {
@@ -99,12 +108,22 @@ export class DevicesService {
         device_images: true,
       },
     });
-    if (createDeviceDto.sale_type == "seller_sold" || createDeviceDto.sale_type == "trade_in") {
+
+    if (
+      createDeviceDto.sale_type === SaleType.seller_sold ||
+      createDeviceDto.sale_type === SaleType.trade_in
+    ) {
       await this.notification.sendViaSMS({
         reciever_id: newDevice.seller_id!,
-        message: `Your ${newDevice.name} device has been listed for ${createDeviceDto.sale_type == "seller_sold" ? "sale" : "trade in"} check on sale x}`
-      })
+        message: `Your ${newDevice.name} device has been listed for ${
+          createDeviceDto.sale_type === SaleType.seller_sold
+            ? "sale"
+            : "trade-in"
+        }. Check it on SaleX.`,
+      });
     }
+
+    return newDevice;
   }
 
   async findAll(search?: string, type?: DeviceType, page = 1, limit = 10) {
@@ -261,9 +280,9 @@ export class DevicesService {
         device_images:
           imageData.length > 0
             ? {
-              deleteMany: {},
-              create: imageData,
-            }
+                deleteMany: {},
+                create: imageData,
+              }
             : undefined,
       },
       include: {

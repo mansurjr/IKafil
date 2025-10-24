@@ -5,6 +5,7 @@ import { ConfigModule } from "@nestjs/config";
 import { UsersModule } from "./users/users.module";
 import { RegionModule } from "./region/region.module";
 import { DevicesModule } from "./devices/devices.module";
+import { BranchModule } from "./branch/branch.module";
 import { DeviceDetailsModule } from "./device-details/device-details.module";
 import { DeviceImagesModule } from "./device-images/device-images.module";
 import { InstallmentPlansModule } from "./installment-plans/installment-plans.module";
@@ -19,7 +20,7 @@ import { MulterModule } from "@nestjs/platform-express";
 import { MailModule } from "./mail/mail.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
-import { PaymentScheduleModule } from './payment-schedule/payment-schedule.module';
+import { PaymentScheduleModule } from "./payment-schedule/payment-schedule.module";
 import { JwtStrategy } from "./common/strategies/access-strategy";
 import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -53,8 +54,9 @@ import { ScheduleModule } from "@nestjs/schedule";
     JwtModule,
     MailModule,
     PaymentScheduleModule,
+    BranchModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, RefreshJwtStrategy],
 })
-export class AppModule { }
+export class AppModule {}
