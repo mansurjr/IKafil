@@ -45,6 +45,11 @@ enum PaymentStatus {
   failed
 }
 
+enum ReceiveType {
+  pickup
+  delivery
+}
+
 enum DeviceSaleStatus {
   available
   sold
@@ -117,21 +122,24 @@ model device_details {
 }
 
 model devices {
-  id         Int               @id @default(autoincrement())
-  name       String
-  type       DeviceType
-  sale_type  SaleType          @default(website_sold)
-  isTradible Boolean?          @default(false)
-  seller_id  Int?
-  region_id  Int?
-  base_price Decimal
-  status     DeviceSaleStatus? @default(available)
-  is_active  Boolean?          @default(true)
-  created_at DateTime?         @default(now())
-  updated_at DateTime?         @updatedAt
+  id           Int               @id @default(autoincrement())
+  name         String
+  type         DeviceType
+  sale_type    SaleType          @default(website_sold)
+  isTradible   Boolean?          @default(false)
+  seller_id    Int?
+  region_id    Int?
+  base_price   Decimal
+  status       DeviceSaleStatus? @default(available)
+  is_active    Boolean?          @default(true)
+  receive_type ReceiveType       @default(delivery)
+  branch_id    Int?
+  created_at   DateTime?         @default(now())
+  updated_at   DateTime?         @updatedAt
 
   seller        users?          @relation("UserDevices", fields: [seller_id], references: [id])
   region        region?         @relation(fields: [region_id], references: [id])
+  branch        branch?         @relation(fields: [branch_id], references: [id])
   details       device_details?
   device_images device_images[]
   carts         carts[]
@@ -202,15 +210,15 @@ model contracts {
 }
 
 model branch {
-  id         Int      @id @default(autoincrement())
-  name       String
+  id         Int       @id @default(autoincrement())
   location   String
   latitude   Float
   longitude  Float
   regionId   Int
-  region     region   @relation(fields: [regionId], references: [id])
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  region     region    @relation(fields: [regionId], references: [id])
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  devices    devices[]
 }
 
 model payment_schedule {

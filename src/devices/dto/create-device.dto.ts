@@ -8,74 +8,51 @@ import {
   ValidateNested,
   IsInt,
   IsPositive,
+  ValidateIf,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { DeviceType, SaleType } from "@prisma/client";
+import { DeviceType, SaleType, ReceiveType } from "@prisma/client";
 
 export class CreateDeviceDetailsDto {
-  @ApiPropertyOptional({
-    example: "Midnight Blue",
-    description: "Qurilmaning rangi (masalan, Midnight Blue, Silver, Gold).",
-  })
+  @ApiPropertyOptional({ example: "Midnight Blue" })
   @IsOptional()
-  @IsString({ message: "color matn (string) bolishi kerak" })
+  @IsString()
   color?: string;
 
-  @ApiPropertyOptional({
-    example: 2024,
-    description: "Qurilmaning ishlab chiqarilgan yili.",
-  })
+  @ApiPropertyOptional({ example: 2024 })
   @IsOptional()
-  @IsInt({ message: "year butun son (integer) bolishi kerak" })
+  @IsInt()
   year?: number;
 
-  @ApiPropertyOptional({
-    example: "Snapdragon 8 Gen 2",
-    description: "Qurilmaning protsessori (CPU) nomi.",
-  })
+  @ApiPropertyOptional({ example: "A17 Pro" })
   @IsOptional()
-  @IsString({ message: "cpu matn (string) bolishi kerak" })
+  @IsString()
   cpu?: string;
 
-  @ApiPropertyOptional({
-    example: "12GB",
-    description: "Operativ xotira (RAM) hajmi.",
-  })
+  @ApiPropertyOptional({ example: "8GB" })
   @IsOptional()
-  @IsString({ message: "ram matn (string) bolishi kerak" })
+  @IsString()
   ram?: string;
 
-  @ApiPropertyOptional({
-    example: "512GB",
-    description: "Doimiy xotira (Storage) hajmi.",
-  })
+  @ApiPropertyOptional({ example: "256GB" })
   @IsOptional()
-  @IsString({ message: "storage matn (string) bolishi kerak" })
+  @IsString()
   storage?: string;
 
-  @ApiPropertyOptional({
-    example: "6.7 inch AMOLED",
-    description: "Ekran hajmi va turi (masalan, 6.7 inch AMOLED).",
-  })
+  @ApiPropertyOptional({ example: "6.7 inch OLED" })
   @IsOptional()
-  @IsString({ message: "display_size matn (string) bolishi kerak" })
+  @IsString()
   display_size?: string;
 
-  @ApiPropertyOptional({
-    example: "94%",
-    description: "Batareya holati (Battery Health), foiz korinishida.",
-  })
+  @ApiPropertyOptional({ example: "95%" })
   @IsOptional()
-  @IsString({ message: "battery_health matn (string) bolishi kerak" })
+  @IsString()
   battery_health?: string;
 
-  @ApiPropertyOptional({
-    example: "Yangi holatda, qadoqlangan.",
-    description: "Qurilma haqida umumiy tavsif yoki izoh.",
-  })
+  @ApiPropertyOptional({ example: "Yangi, qadoqlangan." })
   @IsOptional()
-  @IsString({ message: "description matn (string) bolishi kerak" })
+  @IsString()
   description?: string;
 }
 
@@ -84,78 +61,79 @@ export class CreateDeviceDto {
     example: "iPhone 15 Pro Max",
     description: "Qurilma nomi (modeli).",
   })
-  @IsString({ message: "name matn (string) bolishi kerak" })
+  @IsString()
   name: string;
 
   @ApiProperty({
-    description: "Qurilma turi (`DeviceType` enum qiymatlaridan biri).",
+    description: "Qurilma turi (DeviceType enum qiymatlaridan biri).",
     enum: DeviceType,
     example: DeviceType.iphone,
   })
-  @IsEnum(DeviceType, {
-    message: "type faqat DeviceType enum qiymatlaridan biri bolishi kerak",
-  })
+  @IsEnum(DeviceType)
   type: DeviceType;
 
   @ApiPropertyOptional({
-    description:
-      "Sotuv turi (`SaleType` enum qiymatlaridan biri). Standart qiymat: `website_sold`.",
+    description: "Sotuv turi (SaleType enum qiymatlaridan biri).",
     enum: SaleType,
     example: SaleType.website_sold,
   })
   @IsOptional()
-  @IsEnum(SaleType, {
-    message: "sale_type faqat SaleType enum qiymatlaridan biri bolishi kerak",
-  })
+  @IsEnum(SaleType)
   sale_type: SaleType = SaleType.website_sold;
 
   @ApiPropertyOptional({
     example: 12,
-    description: "Sotuvchi foydalanuvchining ID raqami (agar mavjud bolsa).",
+    description: "Sotuvchi foydalanuvchining ID raqami.",
   })
   @IsOptional()
-  @IsInt({ message: "seller_id butun son (integer) bolishi kerak" })
-  @IsPositive({
-    message: "seller_id musbat son (positive integer) bolishi kerak",
-  })
+  @IsInt()
+  @IsPositive()
   seller_id?: number;
 
   @ApiPropertyOptional({
     example: 5,
-    description: "Hudud (region) ID raqami (agar mavjud bolsa).",
+    description: "Hudud (region) ID raqami.",
   })
   @IsOptional()
-  @IsInt({ message: "region_id butun son (integer) bolishi kerak" })
-  @IsPositive({
-    message: "region_id musbat son (positive integer) bolishi kerak",
-  })
+  @IsInt()
+  @IsPositive()
   region_id?: number;
 
   @ApiProperty({
     example: "1299.99",
-    description:
-      "Qurilmaning asosiy (bazaviy) narxi. Decimal formatda kiritiladi.",
+    description: "Qurilmaning asosiy narxi.",
   })
-  @IsDecimal(
-    {},
-    { message: "base_price haqiqiy (decimal) raqam bolishi kerak" }
-  )
+  @IsDecimal()
   base_price: any;
 
   @ApiPropertyOptional({
     example: true,
-    description:
-      "Qurilma aktiv holatda ekanligini bildiradi. Standart qiymat: `true`.",
+    description: "Qurilma aktiv holatda ekanligini bildiradi.",
   })
   @IsOptional()
-  @IsBoolean({
-    message: "is_active boolean (true yoki false) qiymat bolishi kerak",
-  })
+  @IsBoolean()
   is_active?: boolean = true;
 
+  @ApiProperty({
+    description: "Qurilmani olish turi (pickup yoki delivery).",
+    enum: ReceiveType,
+    example: ReceiveType.pickup,
+  })
+  @IsEnum(ReceiveType)
+  receive_type: ReceiveType;
+
   @ApiPropertyOptional({
+    example: 3,
     description:
-      "Qurilmaning batafsil texnik ma’lumotlari (ichki obyekt sifatida yuboriladi).",
+      "Olib ketish (pickup) bo‘lganda tanlanadigan filial (branch) ID raqami.",
+  })
+  @ValidateIf((o) => o.receive_type === ReceiveType.pickup)
+  @IsInt({ message: "branch_id butun son bo‘lishi kerak" })
+  @IsPositive({ message: "branch_id musbat son bo‘lishi kerak" })
+  branch_id?: number;
+
+  @ApiPropertyOptional({
+    description: "Qurilmaning batafsil ma’lumotlari.",
     type: () => CreateDeviceDetailsDto,
   })
   @IsOptional()
