@@ -41,7 +41,7 @@ import { adminRoles } from "../types";
 @ApiTags("Devices")
 @Controller("devices")
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(private readonly devicesService: DevicesService) { }
 
   @Post()
   @Roles(...adminRoles)
@@ -100,7 +100,6 @@ export class DevicesController {
   }
 
   @Get("seller/own")
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get seller's own devices by status" })
   @ApiParam({ name: "sellerId", type: Number })
   @ApiQuery({

@@ -26,10 +26,9 @@ import { Roles } from "../common/decorators/roles";
 import { UserRole } from "@prisma/client";
 
 @ApiTags("Regions")
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("regions")
 export class RegionController {
-  constructor(private readonly regionService: RegionService) {}
+  constructor(private readonly regionService: RegionService) { }
 
   @ApiBearerAuth()
   @Roles(UserRole.admin, UserRole.superadmin)
@@ -45,13 +44,6 @@ export class RegionController {
     return this.regionService.create(createRegionDto);
   }
 
-  @Roles(
-    UserRole.admin,
-    UserRole.superadmin,
-    UserRole.support,
-    UserRole.seller,
-    UserRole.buyer
-  )
   @Get()
   @ApiOperation({
     summary: "Get all regions",
@@ -82,7 +74,7 @@ export class RegionController {
     return this.regionService.update(id, updateRegionDto);
   }
 
-  @Roles(UserRole.superadmin)
+  @Roles(UserRole.superadmin, UserRole.admin)
   @Delete(":id")
   @ApiOperation({
     summary: "Delete region by ID",

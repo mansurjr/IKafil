@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
 import { Roles } from "../common/decorators/roles";
@@ -26,6 +27,7 @@ import { RolesGuard } from "../common/guards/role.guard";
 
 @ApiTags("Contracts")
 @Roles(...adminRoles)
+@ApiBearerAuth()
 @Controller("contracts")
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}

@@ -34,7 +34,7 @@ import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 @Controller("users")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @Roles(UserRole.admin, UserRole.superadmin)
@@ -77,14 +77,15 @@ export class UsersController {
   @Get()
   @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @ApiOperation({
-    summary: "Get all users (with pagination, search, and role filter)",
+    summary: "Get all users (with pagination, search, role, and region filter)",
     description:
-      "Retrieves paginated list of users. You can search by name/email or filter by role.",
+      "Retrieves paginated list of users. You can search by name/email, filter by role or region.",
   })
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   @ApiQuery({ name: "search", required: false, type: String })
   @ApiQuery({ name: "role", required: false, enum: UserRole })
+  @ApiQuery({ name: "region", required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: "List of users retrieved successfully.",
@@ -94,17 +95,20 @@ export class UsersController {
     @Query("limit") limit: string,
     @Query("search") search: string,
     @Query("role") role: UserRole,
+    @Query("region") region: string,
     @GetCurrentUser("id") currentUserId: number
   ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
+    const regionId = region ? parseInt(region, 10) : undefined;
 
     return this.usersService.findAll(
       pageNumber,
       limitNumber,
       search || "",
       role,
-      currentUserId
+      currentUserId,
+      regionId
     );
   }
 

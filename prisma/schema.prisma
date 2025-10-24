@@ -84,7 +84,6 @@ model users {
   carts           carts[]
   contracts_buyer contracts[]     @relation("BuyerContracts")
   contracts_admin contracts[]     @relation("AdminContracts")
-  notifications   notifications[]
   RevokedToken    RevokedToken[]
 }
 
@@ -175,6 +174,7 @@ model contracts {
   contract_number   String?        @default(uuid())
   buyer_id          Int
   device_id         Int
+  seller_id         Int?
   admin_id          Int?
   plan_id           Int?
   total_price       Decimal
@@ -224,13 +224,4 @@ model payments {
   contract contracts @relation(fields: [contract_id], references: [id])
 }
 
-model notifications {
-  id         Int       @id @default(autoincrement())
-  user_id    Int?
-  title      String
-  message    String
-  is_read    Boolean   @default(false)
-  created_at DateTime? @default(now())
 
-  user users? @relation(fields: [user_id], references: [id])
-}
