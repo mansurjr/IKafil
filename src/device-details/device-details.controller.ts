@@ -18,10 +18,8 @@ import {
 import { DeviceDetailsService } from "./device-details.service";
 import { UpdateDeviceDetailDto } from "./dto/update-device-detail.dto";
 import { JwtAuthGuard } from "../common/guards/accessToken.guard";
-import { Roles } from "../common/decorators/roles";
-import { adminRoles } from "../types";
 
-
+@ApiTags("Device Details")
 @Controller("device-details")
 export class DeviceDetailsController {
   constructor(private readonly deviceDetailsService: DeviceDetailsService) { }
@@ -40,7 +38,6 @@ export class DeviceDetailsController {
     return this.deviceDetailsService.findOne(deviceId);
   }
 
-  @ApiTags("Device Details")
   @Patch(":deviceId")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Update or create device details by device ID" })

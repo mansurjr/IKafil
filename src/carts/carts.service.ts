@@ -11,7 +11,7 @@ import { CreateCartDto } from "./dto/create-cart.dto";
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async addToCart(userId: number, dto: CreateCartDto) {
     try {
@@ -56,6 +56,7 @@ export class CartService {
       const carts = await this.prisma.carts.findMany({
         where: { user_id: userId },
         orderBy: { added_at: "desc" },
+        include: { device: { include: { details: true, device_images: { where: { is_primary: true }, select: { url: true } } } } }
       });
       return carts;
     } catch (error) {
