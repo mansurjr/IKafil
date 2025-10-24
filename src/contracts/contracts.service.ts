@@ -90,6 +90,7 @@ export class ContractsService {
           end_date: endDate,
           is_trade_in: is_trade_in ?? false,
           trade_in_value: trade_in_value ?? 0,
+          seller_id: device.sale_type == "website_sold" ? null : device.seller_id
         },
       });
 
@@ -197,5 +198,42 @@ export class ContractsService {
 
     await this.prisma.contracts.delete({ where: { id } });
     return { message: `Contract with ID ${id} deleted successfully` };
+  }
+
+  async getOwnContracts(userId: number) {
+    // 1️⃣ Check if the user exists and get their role
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    let contractFilter: Record<string, number>;
+
+    if (user.role.toLowerCase() === "buyer") {
+      contractFilter = { buyerId: userId };
+    } else if (user.role.toLowerCase() === "seller") {
+      contractFilter = { sellerId: userId };
+    } else {
+      throw new BadRequestException(`Unrecognized user role: ${user.role}`);
+    }
+
+    const contracts = await this.prisma.contracts.findMany({
+      where: contractFilter,
+      include: {
+        buyer: {
+          select: { id: true, full_name: true, phone: true },
+        },
+        device: {
+          select: { id: true, name: true, },
+        },
+        plan: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+    return contracts;
   }
 }

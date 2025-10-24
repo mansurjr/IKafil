@@ -41,8 +41,6 @@ export class DeviceDetailsController {
   }
 
   @ApiTags("Device Details")
-  @Roles(...adminRoles)
-  @ApiBearerAuth()
   @Patch(":deviceId")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Update or create device details by device ID" })

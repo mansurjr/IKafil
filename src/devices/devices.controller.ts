@@ -41,7 +41,7 @@ import { adminRoles } from "../types";
 @ApiTags("Devices")
 @Controller("devices")
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(private readonly devicesService: DevicesService) { }
 
   @Post()
   @Roles(...adminRoles)
@@ -72,7 +72,6 @@ export class DevicesController {
   }
 
   @Get()
-  @UseGuards()
   @ApiOperation({ summary: "Get all devices" })
   @ApiQuery({
     name: "search",
@@ -80,7 +79,6 @@ export class DevicesController {
     type: String,
     example: "iPhone",
   })
-  @ApiBearerAuth()
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10 })
   findAll(
@@ -91,7 +89,6 @@ export class DevicesController {
     return this.devicesService.findAll(search, page, limit);
   }
   @Get("seller/own")
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get seller's own devices by status" })
   @ApiParam({ name: "sellerId", type: Number })
   @ApiQuery({
