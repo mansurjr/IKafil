@@ -162,7 +162,7 @@ model carts {
   device_id Int
   added_at  DateTime? @default(now())
 
-  user   users   @relation(fields: [user_id], references: [id])
+  user   users   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   device devices @relation(fields: [device_id], references: [id])
 
   @@unique([user_id, device_id])
@@ -182,7 +182,7 @@ model RevokedToken {
 model contracts {
   id                Int            @id @default(autoincrement())
   contract_number   String?        @default(uuid())
-  buyer_id          Int
+  buyer_id          Int?
   device_id         Int
   seller_id         Int?
   admin_id          Int?
@@ -200,10 +200,10 @@ model contracts {
   created_at        DateTime?      @default(now())
   updated_at        DateTime?      @updatedAt
 
-  buyer            users              @relation("BuyerContracts", fields: [buyer_id], references: [id])
-  seller           users?             @relation("SellerContracts", fields: [seller_id], references: [id])
+  buyer            users?              @relation("BuyerContracts", fields: [buyer_id], references: [id], onDelete: SetNull)
+  seller           users?             @relation("SellerContracts", fields: [seller_id], references: [id], onDelete: SetNull)
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
-  device           devices            @relation(fields: [device_id], references: [id])
+  device           devices            @relation(fields: [device_id], references: [id], onDelete: Cascade)
   plan             installment_plans? @relation(fields: [plan_id], references: [id])
   payment_schedule payment_schedule[]
   payments         payments[]

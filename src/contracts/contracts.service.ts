@@ -126,11 +126,11 @@ export class ContractsService {
       });
 
       await this.notification.sendViaSMS({
-        reciever_id: contract.buyer_id,
+        reciever_id: contract.buyer_id!,
         message: `Your ${device.name} device has been sold for ${total_price} so'm.`
       })
       await this.notification.sendViaSMS({
-        reciever_id: contract.buyer_id,
+        reciever_id: contract.buyer_id!,
         message: `Contract created successfully for ${device.name} device.`
       })
 

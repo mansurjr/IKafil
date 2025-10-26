@@ -159,12 +159,19 @@ export class PaymentScheduleService {
 
     for (const schedule of unpaidSchedules) {
       const buyer = schedule.contract?.buyer;
-      const buyerName = buyer?.full_name || `Buyer#${buyer?.id || "unknown"}`;
+
+      if (!buyer) {
+        console.warn(`⚠️ Skipping schedule ${schedule.id}: no buyer found.`);
+        continue;
+      }
+
+      const buyerName = buyer.full_name || `Buyer#${buyer.id}`;
       const dueDate = schedule.due_date.toISOString().split("T")[0];
 
       try {
         await this.notificationsService.sendViaSMS({
           reciever_id: buyer.id,
+          reciever: buyer.phone || undefined,
           message: `Hurmatli ${buyerName}, sizning to'lov muddati ${dueDate} sanasida tugaydi. Iltimos, to'lovni amalga oshiring.`,
         });
       } catch (err) {
@@ -172,4 +179,5 @@ export class PaymentScheduleService {
       }
     }
   }
+
 }
