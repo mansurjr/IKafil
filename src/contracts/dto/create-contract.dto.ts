@@ -40,7 +40,7 @@ export class CreateContractDto {
   @ApiProperty({
     example: 3,
     description:
-      "To‘lov rejasining (installment plan) ID raqami, agar mavjud bo‘lsa.",
+      "Tolov rejasining (installment plan) ID raqami, agar mavjud bolsa.",
     required: false,
   })
   @IsOptional()
@@ -50,7 +50,7 @@ export class CreateContractDto {
   @ApiProperty({
     example: 1200000,
     description:
-      "Trade-in qiymati (so‘mda). Agar shartnoma trade-in asosida bo‘lsa, bu qiymat kiritiladi.",
+      "Trade-in qiymati (somda). Agar shartnoma trade-in asosida bolsa, bu qiymat kiritiladi.",
     required: false,
   })
   @IsOptional()
@@ -92,7 +92,7 @@ export class CreateContractDto {
   @ApiProperty({
     example: false,
     description:
-      "Agar shartnoma trade-in asosida tuzilgan bo‘lsa — `true`, aks holda `false`.",
+      "Agar shartnoma trade-in asosida tuzilgan bolsa — `true`, aks holda `false`.",
     required: false,
   })
   @IsOptional()

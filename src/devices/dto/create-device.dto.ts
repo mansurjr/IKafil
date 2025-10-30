@@ -125,11 +125,11 @@ export class CreateDeviceDto {
   @ApiPropertyOptional({
     example: 3,
     description:
-      "Olib ketish (pickup) bo‘lganda tanlanadigan filial (branch) ID raqami.",
+      "Olib ketish (pickup) bolganda tanlanadigan filial (branch) ID raqami.",
   })
   @ValidateIf((o) => o.receive_type === ReceiveType.pickup)
-  @IsInt({ message: "branch_id butun son bo‘lishi kerak" })
-  @IsPositive({ message: "branch_id musbat son bo‘lishi kerak" })
+  @IsInt({ message: "branch_id butun son bolishi kerak" })
+  @IsPositive({ message: "branch_id musbat son bolishi kerak" })
   branch_id?: number;
 
   @ApiPropertyOptional({

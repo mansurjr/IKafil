@@ -33,7 +33,7 @@ import { Roles } from "../common/decorators/roles";
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  // 🟢 CREATE PAYMENT — faqat buyer to‘lov yaratadi
+  // 🟢 CREATE PAYMENT — faqat buyer tolov yaratadi
   @Roles(UserRole.buyer)
   @Post()
   @ApiOperation({ summary: "Create a new payment (status will be pending)" })
@@ -65,7 +65,7 @@ export class PaymentsController {
     return this.paymentsService.updateStatus(paymentId, status);
   }
 
-  // 🟢 GET PAYMENTS BY CONTRACT — buyer, seller, admin, support ko‘rishi mumkin
+  // 🟢 GET PAYMENTS BY CONTRACT — buyer, seller, admin, support korishi mumkin
   @Roles(
     UserRole.admin,
     UserRole.superadmin,
@@ -84,7 +84,7 @@ export class PaymentsController {
     return this.paymentsService.getContractPayments(contractId, buyerId);
   }
 
-  // 🟢 GET BUYER PAYMENTS — faqat o‘sha buyer yoki admin/superadmin/support
+  // 🟢 GET BUYER PAYMENTS — faqat osha buyer yoki admin/superadmin/support
   @Roles(
     UserRole.admin,
     UserRole.superadmin,
