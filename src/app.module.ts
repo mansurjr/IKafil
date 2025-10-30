@@ -24,6 +24,7 @@ import { PaymentScheduleModule } from "./payment-schedule/payment-schedule.modul
 import { JwtStrategy } from "./common/strategies/access-strategy";
 import { RefreshJwtStrategy } from "./common/strategies/refresh-strategy";
 import { ScheduleModule } from "@nestjs/schedule";
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { ScheduleModule } from "@nestjs/schedule";
     MailModule,
     PaymentScheduleModule,
     BranchModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, RefreshJwtStrategy],
