@@ -17,7 +17,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService
-  ) {}
+  ) { }
 
   private async _checkSuperAdmin(currentUserId?: number) {
     if (!currentUserId)
@@ -105,7 +105,7 @@ export class UsersService {
   async findById(id: number) {
     const user = await this.prisma.users.findUnique({
       where: { id },
-      include: { region: { select: { name: true } } },
+      include: { region: { select: { name: true } }, devices: true, contracts_seller: true, contracts_buyer: { select: { payment_schedule: true } }, contracts_admin: { select: { payment_schedule: true } } },
     });
     if (!user) throw new NotFoundException("User not found");
     return this._excludePassword(user);
@@ -281,6 +281,40 @@ export class UsersService {
 
     return { deletedCount: existingUsers.length, status: "ok" };
   }
+
+  async updateOwnProfile(userId: number, dto: UpdateUserDto, currentUserId?: number) {
+    if (currentUserId && currentUserId !== userId) {
+      throw new ForbiddenException("You can only update your own profile");
+    }
+    const user = await this.prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    if (dto.role || dto.isActive) {
+      throw new ForbiddenException("You cannot change these fields");
+    }
+
+    const dataToUpdate: any = {};
+
+    if (dto.full_name) dataToUpdate.full_name = dto.full_name;
+    if (dto.phone) dataToUpdate.phone = dto.phone;
+
+    if (dto.username) {
+      const existing = await this.prisma.users.findFirst({
+        where: { username: dto.username, NOT: { id: userId } },
+      });
+      if (existing) throw new BadRequestException("Username already taken");
+      dataToUpdate.username = dto.username;
+    }
+
+
+    const updated = await this.prisma.users.update({
+      where: { id: userId },
+      data: dataToUpdate,
+    });
+
+    return this._excludePassword(updated);
+  }
+
 
   private _excludePassword(user: any) {
     const { password, ...rest } = user;

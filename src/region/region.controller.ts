@@ -20,8 +20,6 @@ import {
 import { RegionService } from "./region.service";
 import { CreateRegionDto } from "./dto/create-region.dto";
 import { UpdateRegionDto } from "./dto/update-region.dto";
-import { JwtAuthGuard } from "../common/guards/accessToken.guard";
-import { RolesGuard } from "../common/guards/role.guard";
 import { Roles } from "../common/decorators/roles";
 import { UserRole } from "@prisma/client";
 

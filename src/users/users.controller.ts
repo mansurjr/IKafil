@@ -36,6 +36,7 @@ import { GetCurrentUser } from "../common/decorators/getCurrentUser";
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
+
   @Post()
   @Roles(UserRole.admin, UserRole.superadmin)
   @ApiOperation({
@@ -43,10 +44,7 @@ export class UsersController {
     description: "Creates a new user with provided information and role.",
   })
   @ApiBody({ type: CreateUserDto, description: "User creation payload" })
-  @ApiResponse({
-    status: 201,
-    description: "User successfully created.",
-  })
+  @ApiResponse({ status: 201, description: "User successfully created." })
   @ApiResponse({
     status: 400,
     description: "Invalid data or duplicate email/phone.",
@@ -70,9 +68,9 @@ export class UsersController {
       region_id,
       ...safeUser
     } = user;
-
     return safeUser;
   }
+
 
   @Get()
   @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
@@ -112,6 +110,7 @@ export class UsersController {
     );
   }
 
+
   @Get(":id")
   @Roles(UserRole.admin, UserRole.superadmin, UserRole.support)
   @ApiOperation({
@@ -120,10 +119,7 @@ export class UsersController {
       "Retrieves a single user by ID. Sensitive fields like password and tokens are excluded.",
   })
   @ApiParam({ name: "id", type: Number, description: "User ID" })
-  @ApiResponse({
-    status: 200,
-    description: "User found and returned successfully.",
-  })
+  @ApiResponse({ status: 200, description: "User found successfully." })
   @ApiResponse({ status: 404, description: "User not found." })
   async findOne(@Param("id", ParseIntPipe) id: number) {
     const user = await this.usersService.findById(id);
@@ -137,9 +133,9 @@ export class UsersController {
       region_id,
       ...safeUser
     } = user;
-
     return safeUser;
   }
+
 
   @Patch(":id")
   @Roles(UserRole.admin, UserRole.superadmin)
@@ -150,7 +146,6 @@ export class UsersController {
   @ApiParam({ name: "id", type: Number, description: "User ID" })
   @ApiBody({ type: UpdateUserDto, description: "User update data" })
   @ApiResponse({ status: 200, description: "User updated successfully." })
-  @ApiResponse({ status: 404, description: "User not found." })
   async update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -158,6 +153,34 @@ export class UsersController {
   ) {
     return this.usersService.update(id, updateUserDto, currentUserId);
   }
+
+
+  @Patch("me")
+  @ApiOperation({
+    summary: "Update current user's own profile",
+    description:
+      "Allows a logged-in user to update their own information (name, phone, username).",
+  })
+  @ApiBody({
+    type: UpdateUserDto,
+    description:
+      "Only `full_name`, `phone`, or `username` can be updated by the user.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "User profile updated successfully.",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden. You can only update your own profile.",
+  })
+  async updateOwnProfile(
+    @GetCurrentUser("id") currentUserId: number,
+    @Body() dto: UpdateUserDto
+  ) {
+    return this.usersService.updateOwnProfile(currentUserId, dto, currentUserId);
+  }
+
 
   @Delete(":id")
   @Roles(UserRole.admin, UserRole.superadmin)
@@ -167,13 +190,13 @@ export class UsersController {
   })
   @ApiParam({ name: "id", type: Number, description: "User ID" })
   @ApiResponse({ status: 200, description: "User deleted successfully." })
-  @ApiResponse({ status: 404, description: "User not found." })
   async remove(
     @Param("id", ParseIntPipe) id: number,
     @GetCurrentUser("id") currentUserId: number
   ) {
     return this.usersService.remove(id, currentUserId);
   }
+
 
   @Delete()
   @Roles(UserRole.admin, UserRole.superadmin)
@@ -190,10 +213,6 @@ export class UsersController {
     },
   })
   @ApiResponse({ status: 200, description: "Users deleted successfully." })
-  @ApiResponse({
-    status: 400,
-    description: "Invalid or empty array of IDs provided.",
-  })
   async bulkRemove(
     @Body("ids") ids: number[],
     @GetCurrentUser("id") currentUserId: number

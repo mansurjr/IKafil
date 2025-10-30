@@ -5,7 +5,7 @@ import { UserRole } from "@prisma/client";
 
 @Injectable()
 export class AppService implements OnModuleInit {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getHello(): string {
     return "Hello World!";
@@ -31,7 +31,6 @@ export class AppService implements OnModuleInit {
         },
       });
       console.log("✅ Superadmin created:", superAdminEmail);
-      
     }
   }
 }

@@ -150,17 +150,17 @@ export class ContractsService {
   }
 
   async findAll() {
-    return this.prisma.contracts.findMany({
-      include: {
-        buyer: true,
-        device: true,
-        admin: true,
-        plan: true,
-        payment_schedule: true,
-        payments: true,
-      },
-      orderBy: { created_at: "desc" },
-    });
+  return this.prisma.contracts.findMany({
+    include: {
+      buyer : true,
+      device : true,
+      admin: true,
+      plan : true,
+      payment_schedule: true,
+      payments: true,
+    },
+    orderBy: { created_at: "desc" },
+  });
   }
 
   async findOne(id: number) {
