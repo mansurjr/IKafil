@@ -138,9 +138,9 @@ export class AuthService {
   async resetPassword(
     token: string,
     newPassword: string,
-    confirmNewPassword: string
+    confirmPassword: string
   ) {
-    if (newPassword !== confirmNewPassword)
+    if (newPassword !== confirmPassword)
       throw new BadRequestException("Passwords do not match");
 
     const user = await this.prisma.users.findFirst({
