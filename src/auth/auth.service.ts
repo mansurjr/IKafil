@@ -51,6 +51,7 @@ export class AuthService {
 
   async signIn(dto: SignInDto, res: Response, admin?: boolean) {
     const user = await this.usersService.findByEmailOrPhone(dto.email);
+    console.log(user)
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
     if (admin && user.role !== "admin" && user.role !== "superadmin") {
