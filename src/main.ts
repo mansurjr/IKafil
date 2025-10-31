@@ -13,7 +13,7 @@ async function bootstrap() {
   app.setGlobalPrefix(globalPrefix);
 
   app.enableCors({
-    origin: ["http://localhost:5173", "http://localhost:3000", "https://ikafil.uz"],
+    origin: ["http://localhost:5173", "http://localhost:3000", "https://ikafil.uz", "https://ikafil-admin-dash.vercel.app"],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
