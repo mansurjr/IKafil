@@ -24,7 +24,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly mail: MailService
-  ) {}
+  ) { }
 
   async register(dto: Omit<CreateUserDto, "role">) {
     const existing = await this.usersService.findByEmailOrPhone(dto.email);
@@ -124,7 +124,7 @@ export class AuthService {
     if (!user) throw new BadRequestException("User not found");
 
     const token = uuid.v4();
-    const resetLink = `${this.config.get("APP_URL")}/api/reset-password/${token}`;
+    const resetLink = `https://ikafil.uz/auth/reset-password/${token}`;
 
     await this.prisma.users.update({
       where: { id: user.id },

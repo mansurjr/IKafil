@@ -92,7 +92,6 @@ model users {
   contracts_admin  contracts[]    @relation("AdminContracts")
   RevokedToken     RevokedToken[]
   contracts_seller contracts[]    @relation("SellerContracts")
-  orders           orders[]
 }
 
 model installment_plans {
@@ -145,7 +144,6 @@ model devices {
   device_images device_images[]
   carts         carts[]
   contracts     contracts[]
-  orders        orders[]
 }
 
 model device_images {
@@ -202,7 +200,7 @@ model contracts {
   created_at        DateTime?      @default(now())
   updated_at        DateTime?      @updatedAt
 
-  buyer            users?             @relation("BuyerContracts", fields: [buyer_id], references: [id], onDelete: SetNull)
+  buyer            users?              @relation("BuyerContracts", fields: [buyer_id], references: [id], onDelete: SetNull)
   seller           users?             @relation("SellerContracts", fields: [seller_id], references: [id], onDelete: SetNull)
   admin            users?             @relation("AdminContracts", fields: [admin_id], references: [id])
   device           devices            @relation(fields: [device_id], references: [id], onDelete: Cascade)
@@ -247,19 +245,4 @@ model payments {
   updated_at   DateTime?     @updatedAt
 
   contract contracts @relation(fields: [contract_id], references: [id])
-}
-
-model orders {
-  id             Int           @id @default(autoincrement())
-  user_id        Int
-  device_ids     Int[]
-  total_price    Decimal
-  payment_status PaymentStatus @default(pending)
-  payment_method PaymentMethod @default(cash)
-  created_at     DateTime?     @default(now())
-  updated_at     DateTime?     @updatedAt
-
-  user      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  devices   devices? @relation(fields: [devicesId], references: [id])
-  devicesId Int?
 }
